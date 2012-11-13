@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ESMERALDAClasses", "ESMERALDAClasses\ESMERALDAClasses.csproj", "{C54E573C-5E88-41A9-95B6-72689C93BB84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlimeeLibrary", "..\Slimee\SlimeeLibrary\SlimeeLibrary.csproj", "{19C678F8-AE96-402A-B2BC-5CC616C4381A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ESMERALDA", "ESMERALDA\ESMERALDA.csproj", "{8EA8C161-0D87-491F-BF4C-373E34C99563}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C54E573C-5E88-41A9-95B6-72689C93BB84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C54E573C-5E88-41A9-95B6-72689C93BB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C54E573C-5E88-41A9-95B6-72689C93BB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C54E573C-5E88-41A9-95B6-72689C93BB84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19C678F8-AE96-402A-B2BC-5CC616C4381A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19C678F8-AE96-402A-B2BC-5CC616C4381A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19C678F8-AE96-402A-B2BC-5CC616C4381A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19C678F8-AE96-402A-B2BC-5CC616C4381A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8EA8C161-0D87-491F-BF4C-373E34C99563}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8EA8C161-0D87-491F-BF4C-373E34C99563}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8EA8C161-0D87-491F-BF4C-373E34C99563}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8EA8C161-0D87-491F-BF4C-373E34C99563}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

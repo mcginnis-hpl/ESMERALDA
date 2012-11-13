@@ -1,0 +1,1 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="GuidGenerator.aspx.cs" Inherits="ESMERALDA.GuidGenerator" %>
