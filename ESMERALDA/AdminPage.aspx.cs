@@ -85,20 +85,14 @@ namespace ESMERALDA
             this.txtRowObservation.Text = string.Empty;
             f.Metadata.processing_methodology = this.txtRowProcessing.Text;
             this.txtRowProcessing.Text = string.Empty;
-            List<Field> fields = new List<Field>();
-            if ((working.Header != null) && (working.Header.Length > 0))
-            {
-                fields.AddRange(working.Header);
-            }
             if (edit_row >= 0)
             {
-                fields[edit_row] = f;
+                working.Header[edit_row] = f;
             }
             else
             {
-                fields.Add(f);
+                working.Header.Add(f);
             }
-            working.Header = fields.ToArray<Field>();
             base.SetSessionValue("WorkingDataset", working);
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             this.PopulateFields(conn, -1);
@@ -116,7 +110,7 @@ namespace ESMERALDA
             working.ProcessingDescription = this.txtDataset_Processing.Text;
             working.BriefDescription = this.txtDataset_ShortDescription.Text;
             working.URL = this.txtDataset_URL.Text;
-            working.TableName = this.txtDataset_TableName.Text;
+            working.SQLName = this.txtDataset_TableName.Text;
             working.ParentProject = theProject;
             char[] delim = new char[] { ',' };
             working.Keywords.Clear();
@@ -188,7 +182,7 @@ namespace ESMERALDA
                     this.tblSpecification.Rows.RemoveAt(j);
                 }
             }
-            for (int i = 0; i < working.Header.Length; i++)
+            for (int i = 0; i < working.Header.Count; i++)
             {
                 if (i == edit_index)
                 {
@@ -202,13 +196,13 @@ namespace ESMERALDA
                         }
                     }
                     base.ClientScript.RegisterStartupScript(base.GetType(), "MetricInit", "<script language='JavaScript'>populateMetrics('" + working.Header[i].FieldMetric.ID.ToString() + "');</script>");
-                    this.txtRowSourceColumn.Text = working.Header[i].SourceColumnName;
+                    this.txtRowSourceColumn.Text = ((Field)working.Header[i]).SourceColumnName;
                     this.txtRowSQLColumn.Text = working.Header[i].SQLColumnName;
-                    this.txtRowInstrument.Text = working.Header[i].Metadata.instrument;
-                    this.txtRowObservation.Text = working.Header[i].Metadata.observation_methodology;
-                    this.txtRowAnalysis.Text = working.Header[i].Metadata.analysis_methodology;
-                    this.txtRowProcessing.Text = working.Header[i].Metadata.processing_methodology;
-                    this.txtRowCitations.Text = working.Header[i].Metadata.description;
+                    this.txtRowInstrument.Text = ((Field)working.Header[i]).Metadata.instrument;
+                    this.txtRowObservation.Text = ((Field)working.Header[i]).Metadata.observation_methodology;
+                    this.txtRowAnalysis.Text = ((Field)working.Header[i]).Metadata.analysis_methodology;
+                    this.txtRowProcessing.Text = ((Field)working.Header[i]).Metadata.processing_methodology;
+                    this.txtRowCitations.Text = ((Field)working.Header[i]).Metadata.description;
                     this.tblSpecification.Rows.Add(editrow);
                     continue;
                 }
@@ -230,7 +224,7 @@ namespace ESMERALDA
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].SourceColumnName
+                    Text = ((Field)working.Header[i]).SourceColumnName
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
@@ -240,27 +234,27 @@ namespace ESMERALDA
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].Metadata.instrument
+                    Text = ((Field)working.Header[i]).Metadata.instrument
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].Metadata.observation_methodology
+                    Text = ((Field)working.Header[i]).Metadata.observation_methodology
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].Metadata.analysis_methodology
+                    Text = ((Field)working.Header[i]).Metadata.analysis_methodology
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].Metadata.processing_methodology
+                    Text = ((Field)working.Header[i]).Metadata.processing_methodology
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = working.Header[i].Metadata.description
+                    Text = ((Field)working.Header[i]).Metadata.description
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell();
@@ -278,10 +272,7 @@ namespace ESMERALDA
         protected void DeleteRow(int i)
         {
             Dataset ds = (Dataset)base.GetSessionValue("WorkingDataSet");
-            List<Field> fields = new List<Field>();
-            fields.AddRange(ds.Header);
-            fields.RemoveAt(i);
-            ds.Header = fields.ToArray<Field>();
+            ds.Header.RemoveAt(i);
             base.SetSessionValue("WorkingDataSet", ds);
         }
 
@@ -439,8 +430,8 @@ namespace ESMERALDA
                 if (setID != Guid.Empty)
                 {
                     SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-                    List<Metric> current_metrics = base.Metrics;
-                    Dataset newdataset = Dataset.Load(conn, setID, current_metrics);
+                    Dataset newdataset = new Dataset();
+                    newdataset.Load(conn, setID, base.Conversions, base.Metrics);
                     if (newdataset != null)
                     {
                         base.SetSessionValue("WorkingDataSet", newdataset);
@@ -454,15 +445,11 @@ namespace ESMERALDA
         protected void txtProgram_ID_TextChanged(object sender, EventArgs e)
         {
             Guid programid = new Guid(this.txtProgram_ID.Text);
-            Program theProgram = null;
+            Program theProgram = new Program(); ;
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             if (programid != Guid.Empty)
             {
-                theProgram = Program.Load(conn, programid);
-            }
-            else
-            {
-                theProgram = new Program();
+                theProgram.Load(conn, programid);
             }
             base.SetSessionValue("WorkingProgram", theProgram);
             this.PopulateFields(conn, -1);
@@ -472,11 +459,11 @@ namespace ESMERALDA
         protected void txtProject_ID_TextChanged(object sender, EventArgs e)
         {
             Guid projectid = new Guid(this.txtProject_ID.Text);
-            Project theProject = null;
+            Project theProject = new Project();
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             if (projectid != Guid.Empty)
             {
-                theProject = Project.Load(conn, projectid);
+                theProject.Load(conn, projectid);
             }
             this.PopulateProjectFields(conn, theProject);
             base.SetSessionValue("WorkingProject", theProject);

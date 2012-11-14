@@ -14,7 +14,7 @@ namespace ESMERALDA
             ESMERALDAClasses.View view = (ESMERALDAClasses.View)base.GetSessionValue("WorkingView");
             this.ParseValueString(this.viewValues.Value, view);
             ViewCondition cond = new ViewCondition(null, ViewCondition.ConditionType.None, view);
-            view.Conditions.Add(cond);
+            view.Header.Add(cond);
             base.SetSessionValue("WorkingView", view);
             this.PopulateData(view);
             this.BuildValueString(view);
@@ -42,18 +42,18 @@ namespace ESMERALDA
         {
             string ret = string.Empty;
             string work = string.Empty;
-            for (int i = 0; i < working.Conditions.Count; i++)
+            for (int i = 0; i < working.Header.Count; i++)
             {
-                work = working.Conditions[i].ID.ToString();
-                if (working.Conditions[i].SourceField == null)
+                work = working.Header[i].ID.ToString();
+                if (((ViewCondition)working.Header[i]).SourceField == null)
                 {
                     work = work + "|";
                 }
                 else
                 {
-                    work = work + "|" + working.Conditions[i].SourceField.ID.ToString();
+                    work = work + "|" + ((ViewCondition)working.Header[i]).SourceField.ID.ToString();
                 }
-                work = ((work + "|" + ((int)working.Conditions[i].Type).ToString()) + "|" + working.Conditions[i].Condition) + "|" + working.Conditions[i].SQLName;
+                work = ((work + "|" + ((int)((ViewCondition)working.Header[i]).Type).ToString()) + "|" + ((ViewCondition)working.Header[i]).Condition) + "|" + ((ViewCondition)working.Header[i]).SQLColumnName;
                 if (string.IsNullOrEmpty(ret))
                 {
                     ret = work;
@@ -111,12 +111,13 @@ namespace ESMERALDA
                 SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (viewid != Guid.Empty)
                 {
-                    view = ESMERALDAClasses.View.LoadView(conn, viewid, base.Conversions, base.Metrics);
+                    view = new ESMERALDAClasses.View();
+                    view.Load(conn, viewid, base.Conversions, base.Metrics);
                 }
                 else
                 {
-                    Dataset data = null;
-                    data = Dataset.Load(conn, datasetid, base.Metrics);
+                    Dataset data = new Dataset();
+                    data.Load(conn, datasetid, base.Conversions, base.Metrics);
                     if (view == null)
                     {
                         view = new ESMERALDAClasses.View(data);
@@ -150,7 +151,7 @@ namespace ESMERALDA
                 if (tokens.Length >= 3)
                 {
                     Guid conditionid = new Guid(tokens[0]);
-                    foreach (ViewCondition cond in working.Conditions)
+                    foreach (ViewCondition cond in working.Header)
                     {
                         if (!(cond.ID == conditionid))
                         {
@@ -166,21 +167,21 @@ namespace ESMERALDA
                         }
                         if (cond.SourceField != null)
                         {
-                            cond.SQLName = tokens[4];
-                            if (string.IsNullOrEmpty(cond.SQLName))
+                            cond.SQLColumnName = tokens[4];
+                            if (string.IsNullOrEmpty(cond.SQLColumnName))
                             {
-                                cond.SQLName = cond.SourceField.SQLColumnName;
+                                cond.SQLColumnName = cond.SourceField.SQLColumnName;
                                 int field_count = 0;
-                                foreach (ViewCondition cond1 in working.Conditions)
+                                foreach (ViewCondition cond1 in working.Header)
                                 {
-                                    if ((cond1.SQLName == cond.SQLName) && (cond1.ID != cond.ID))
+                                    if ((cond1.SQLColumnName == cond.SQLColumnName) && (cond1.ID != cond.ID))
                                     {
                                         field_count++;
                                     }
                                 }
                                 if (field_count > 0)
                                 {
-                                    cond.SQLName = cond.SQLName + field_count.ToString();
+                                    cond.SQLColumnName = cond.SQLColumnName + field_count.ToString();
                                 }
                             }
                             cond.Type = (ViewCondition.ConditionType)int.Parse(tokens[2]);
@@ -203,7 +204,7 @@ namespace ESMERALDA
                             }
                             if (!string.IsNullOrEmpty(tokens[4]))
                             {
-                                cond.SQLName = tokens[4];
+                                cond.SQLColumnName = tokens[4];
                             }
                             break;
                         }
@@ -218,7 +219,7 @@ namespace ESMERALDA
             {
                 if (view.SourceData != null)
                 {
-                    if (view.SourceData.IsEditable)
+                    if (view.SourceData.GetType() == typeof(Dataset))
                     {
                         HtmlGenericControl span = new HtmlGenericControl("span")
                         {
@@ -243,13 +244,13 @@ namespace ESMERALDA
         protected void PopulateData(ESMERALDAClasses.View working)
         {
             string dbname = working.SourceData.ParentProject.database_name;
-            string tablename = working.SourceData.TableName;
-            SqlConnection dataconn = base.ConnectToDatabase(dbname);
+            string tablename = working.SourceData.SQLName;
+            SqlConnection dataconn = base.ConnectToDatabaseReadOnly(dbname);
             this.PopulateFilters(working);
             this.PopulatePreviewData(dataconn, working);
             this.PopulateLinks(working);
             dataconn.Close();
-            this.querytag.InnerHtml = "Custom SQL Query (Source Data SQL Name: <a href='javascript:addField(\"" + working.SourceData.TableName + "\")'>" + working.SourceData.TableName + "</a>)";
+            this.querytag.InnerHtml = "Custom SQL Query (Source Data SQL Name: <a href='javascript:addField(\"" + working.SourceData.SQLName + "\")'>" + working.SourceData.SQLName + "</a>)";
         }
 
         protected void PopulateFilters(ESMERALDAClasses.View working)
@@ -294,52 +295,52 @@ namespace ESMERALDA
             thc = new TableHeaderCell();
             thr.Cells.Add(thc);
             this.filterTable.Rows.Add(thr);
-            for (int i = 0; i < working.Conditions.Count; i++)
+            for (int i = 0; i < working.Header.Count; i++)
             {
                 TableRow tr = new TableRow();
                 TableCell tc = new TableCell();
-                if (working.Conditions[i].SourceField == null)
+                if (((ViewCondition)working.Header[i]).SourceField == null)
                 {
                     DropDownList dl = new DropDownList();
                     foreach (Field f in working.SourceData.Header)
                     {
                         dl.Items.Add(new ListItem(f.Name, f.ID.ToString()));
                     }
-                    dl.ID = "filtersourcefield_" + working.Conditions[i].ID.ToString();
-                    dl.Attributes.Add("onchange", "updateFilterSourceField('" + working.Conditions[i].ID.ToString() + "')");
+                    dl.ID = "filtersourcefield_" + working.Header[i].ID.ToString();
+                    dl.Attributes.Add("onchange", "updateFilterSourceField('" + working.Header[i].ID.ToString() + "')");
                     tc.Controls.Add(dl);
                 }
                 else
                 {
-                    tc.Text = working.Conditions[i].SourceField.Name;
+                    tc.Text = ((ViewCondition)working.Header[i]).SourceField.Name;
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField == null)
+                if (((ViewCondition)working.Header[i]).SourceField == null)
                 {
                     tc.Text = string.Empty;
                 }
                 else
                 {
-                    tc.Text = "<a href='javascript:addField(\"" + working.Conditions[i].SourceField.SQLColumnName + "\")'>" + working.Conditions[i].SourceField.SQLColumnName + "</a>";
+                    tc.Text = "<a href='javascript:addField(\"" + ((ViewCondition)working.Header[i]).SourceField.SQLColumnName + "\")'>" + ((ViewCondition)working.Header[i]).SourceField.SQLColumnName + "</a>";
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField == null)
+                if (((ViewCondition)working.Header[i]).SourceField == null)
                 {
                     tc.Text = string.Empty;
                 }
                 else
                 {
-                    tc.Text = working.Conditions[i].SourceField.FieldMetric.Name;
+                    tc.Text = ((ViewCondition)working.Header[i]).SourceField.FieldMetric.Name;
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField != null)
+                if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
                     DropDownList filterType = new DropDownList
                     {
-                        ID = "filtertype_" + working.Conditions[i].ID.ToString()
+                        ID = "filtertype_" + working.Header[i].ID.ToString()
                     };
                     filterType.Items.Add(new ListItem(string.Empty, "0"));
                     filterType.Items.Add(new ListItem("Filter", "1"));
@@ -347,32 +348,32 @@ namespace ESMERALDA
                     filterType.Items.Add(new ListItem("Sort Decending", "3"));
                     filterType.Items.Add(new ListItem("Formula", "5"));
                     filterType.Items.Add(new ListItem("Conversion", "6"));
-                    filterType.Attributes.Add("onchange", "updateFilterType('" + working.Conditions[i].ID.ToString() + "')");
-                    if (working.Conditions[i].Type == ViewCondition.ConditionType.Exclude)
+                    filterType.Attributes.Add("onchange", "updateFilterType('" + working.Header[i].ID.ToString() + "')");
+                    if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Exclude)
                     {
                         filterType.Enabled = false;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.Filter)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Filter)
                     {
                         filterType.SelectedIndex = 1;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.None)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.None)
                     {
                         filterType.SelectedIndex = 0;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.SortAscending)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.SortAscending)
                     {
                         filterType.SelectedIndex = 2;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.SortDescending)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.SortDescending)
                     {
                         filterType.SelectedIndex = 3;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.Formula)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Formula)
                     {
                         filterType.SelectedIndex = 4;
                     }
-                    else if (working.Conditions[i].Type == ViewCondition.ConditionType.Conversion)
+                    else if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Conversion)
                     {
                         filterType.SelectedIndex = 5;
                     }
@@ -380,15 +381,15 @@ namespace ESMERALDA
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField != null)
+                if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
                     TextBox txtFilter = new TextBox
                     {
-                        ID = "filtertext_" + working.Conditions[i].ID.ToString()
+                        ID = "filtertext_" + working.Header[i].ID.ToString()
                     };
-                    txtFilter.Attributes.Add("onchange", "updateFilterText('" + working.Conditions[i].ID.ToString() + "')");
-                    txtFilter.Text = working.Conditions[i].Condition;
-                    if ((working.Conditions[i].Type == ViewCondition.ConditionType.Filter) || (working.Conditions[i].Type == ViewCondition.ConditionType.Formula))
+                    txtFilter.Attributes.Add("onchange", "updateFilterText('" + working.Header[i].ID.ToString() + "')");
+                    txtFilter.Text = ((ViewCondition)working.Header[i]).Condition;
+                    if ((((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Filter) || (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Formula))
                     {
                         txtFilter.Style["display"] = "";
                     }
@@ -399,22 +400,22 @@ namespace ESMERALDA
                     tc.Controls.Add(txtFilter);
                     DropDownList ddl = new DropDownList
                     {
-                        ID = "filterconversion_" + working.Conditions[i].ID.ToString()
+                        ID = "filterconversion_" + working.Header[i].ID.ToString()
                     };
-                    ddl.Attributes.Add("onchange", "updateFilterConversion('" + working.Conditions[i].ID.ToString() + "')");
+                    ddl.Attributes.Add("onchange", "updateFilterConversion('" + working.Header[i].ID.ToString() + "')");
                     ddl.Items.Add(new ListItem(string.Empty, string.Empty));
                     foreach (Conversion c in base.Conversions)
                     {
-                        if (c.SourceMetric.ID == working.Conditions[i].SourceField.FieldMetric.ID)
+                        if (c.SourceMetric.ID == ((ViewCondition)working.Header[i]).SourceField.FieldMetric.ID)
                         {
                             ddl.Items.Add(new ListItem(c.SourceMetric.Name + "->" + c.DestinationMetric.Name, c.ID.ToString()));
-                            if ((working.Conditions[i].CondConversion != null) && (c.ID == working.Conditions[i].CondConversion.ID))
+                            if ((((ViewCondition)working.Header[i]).CondConversion != null) && (c.ID == ((ViewCondition)working.Header[i]).CondConversion.ID))
                             {
                                 ddl.SelectedIndex = ddl.Items.Count - 1;
                             }
                         }
                     }
-                    if (working.Conditions[i].CondConversion == null)
+                    if (((ViewCondition)working.Header[i]).CondConversion == null)
                     {
                         ddl.Style["display"] = "none";
                     }
@@ -422,22 +423,22 @@ namespace ESMERALDA
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField != null)
+                if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
                     TextBox tb1 = new TextBox
                     {
-                        ID = "filteralias_" + working.Conditions[i].ID.ToString()
+                        ID = "filteralias_" + working.Header[i].ID.ToString()
                     };
-                    tb1.Attributes.Add("onchange", "updateFilterAlias('" + working.Conditions[i].ID.ToString() + "')");
-                    tb1.Text = working.Conditions[i].SQLName;
+                    tb1.Attributes.Add("onchange", "updateFilterAlias('" + working.Header[i].ID.ToString() + "')");
+                    tb1.Text = working.Header[i].SQLColumnName;
                     tc.Controls.Add(tb1);
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
-                if (working.Conditions[i].SourceField != null)
+                if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
                     CheckBox cb = new CheckBox();
-                    if (working.Conditions[i].Type == ViewCondition.ConditionType.Exclude)
+                    if (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Exclude)
                     {
                         cb.Checked = false;
                     }
@@ -445,16 +446,16 @@ namespace ESMERALDA
                     {
                         cb.Checked = true;
                     }
-                    cb.ID = "filterinclude_" + working.Conditions[i].ID.ToString();
-                    cb.Attributes.Add("onchange", "updateFilterInclude('" + working.Conditions[i].ID.ToString() + "')");
+                    cb.ID = "filterinclude_" + working.Header[i].ID.ToString();
+                    cb.Attributes.Add("onchange", "updateFilterInclude('" + working.Header[i].ID.ToString() + "')");
                     tc.Controls.Add(cb);
                 }
                 tr.Cells.Add(tc);
                 tc = new TableCell();
                 string metadata_string = string.Empty;
-                if (working.Conditions[i].SourceField != null)
+                if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
-                    metadata_string = working.Conditions[i].SourceField.SourceColumnName + "|" + working.Conditions[i].SourceField.Metadata.observation_methodology + "|" + working.Conditions[i].SourceField.Metadata.instrument + "|" + working.Conditions[i].SourceField.Metadata.analysis_methodology + "|" + working.Conditions[i].SourceField.Metadata.processing_methodology + "|" + working.Conditions[i].SourceField.Metadata.citations + "|" + working.Conditions[i].SourceField.Metadata.description;
+                    metadata_string = ((ViewCondition)working.Header[i]).SourceField.SQLColumnName + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.observation_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.instrument + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.analysis_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.processing_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.citations + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.description;
                     tc.Text = "<a id='metadata_" + i.ToString() + "' href='javascript:showMetadata(\"metadata_" + i.ToString() + "\"," + i.ToString() + ")'>Show Metadata</a>";
                 }
                 else
@@ -487,7 +488,7 @@ namespace ESMERALDA
             this.txtBriefDescription.Text = working.BriefDescription;
             this.txtDescription.Text = working.Description;
             this.txtViewName.Text = working.Name;
-            this.lblViewSQLName.Text = working.ViewSQLName;
+            this.lblViewSQLName.Text = working.SQLName;
         }
 
         protected void PopulatePreviewData(SqlConnection conn, ESMERALDAClasses.View working)
@@ -562,13 +563,13 @@ namespace ESMERALDA
                 this.tblPreviewData.Rows.Clear();
                 thr = new TableHeaderRow();
                 i = 0;
-                while (i < working.Conditions.Count)
+                while (i < working.Header.Count)
                 {
-                    if ((working.Conditions[i].SourceField != null) && (working.Conditions[i].Type != ViewCondition.ConditionType.Exclude))
+                    if ((((ViewCondition)working.Header[i]).SourceField != null) && (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude))
                     {
                         thc = new TableHeaderCell
                         {
-                            Text = working.Conditions[i].SQLName
+                            Text = ((ViewCondition)working.Header[i]).SQLColumnName
                         };
                         thr.Cells.Add(thc);
                     }
@@ -581,23 +582,23 @@ namespace ESMERALDA
                     while (reader.Read())
                     {
                         tr = new TableRow();
-                        for (i = 0; i < working.Conditions.Count; i++)
+                        for (i = 0; i < working.Header.Count; i++)
                         {
-                            if ((working.Conditions[i].SourceField != null) && (working.Conditions[i].Type != ViewCondition.ConditionType.Exclude))
+                            if ((((ViewCondition)working.Header[i]).SourceField != null) && (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude))
                             {
                                 tc = new TableCell();
-                                if (!reader.IsDBNull(reader.GetOrdinal(working.Conditions[i].SQLName)))
+                                if (!reader.IsDBNull(reader.GetOrdinal(working.Header[i].SQLColumnName)))
                                 {
-                                    if (working.Conditions[i].CondConversion != null)
+                                    if (((ViewCondition)working.Header[i]).CondConversion != null)
                                     {
-                                        tc.Text = working.Conditions[i].CondConversion.DestinationMetric.Format(reader[working.Conditions[i].SQLName].ToString());
+                                        tc.Text = ((ViewCondition)working.Header[i]).CondConversion.DestinationMetric.Format(reader[working.Header[i].SQLColumnName].ToString());
                                     }
                                     else
                                     {
-                                        tc.Text = working.Conditions[i].SourceField.FieldMetric.Format(reader[working.Conditions[i].SQLName].ToString());
+                                        tc.Text = ((ViewCondition)working.Header[i]).SourceField.FieldMetric.Format(reader[working.Header[i].SQLColumnName].ToString());
                                     }
                                 }
-                                if ((working.Conditions[i].Type == ViewCondition.ConditionType.Conversion) || (working.Conditions[i].Type == ViewCondition.ConditionType.Formula))
+                                if ((((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Conversion) || (((ViewCondition)working.Header[i]).Type == ViewCondition.ConditionType.Formula))
                                 {
                                     tc.CssClass = "modifiedHeaderCell";
                                 }

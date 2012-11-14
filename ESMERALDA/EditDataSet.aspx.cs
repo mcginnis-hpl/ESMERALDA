@@ -28,8 +28,8 @@ namespace ESMERALDA
             SqlConnection working_connection = base.ConnectToDatabase(working.ParentProject.database_name);
             SqlTransaction tran = working_connection.BeginTransaction();
             SqlTableCreator creator = new SqlTableCreator(working_connection, tran);
-            working.TableName = Utils.CreateDBName(working.Name);
-            creator.DestinationTableName = working.TableName;
+            working.SQLName = Utils.CreateDBName(working.Name);
+            creator.DestinationTableName = working.SQLName;
             creator.Create(SqlTableCreator.GetSchemaTable(newtable));
             tran.Commit();
             creator.WriteData(newtable);
@@ -76,7 +76,8 @@ namespace ESMERALDA
             string data_config = this.tableSpecification.Value;
             char[] row_delim = new char[] { ';' };
             char[] col_delim = new char[] { '|' };
-            List<Field> fields = new List<Field>();
+            working.Header.Clear();
+
             string[] config_rows = data_config.Split(row_delim);
             for (i = 0; i < config_rows.Length; i++)
             {
@@ -105,14 +106,14 @@ namespace ESMERALDA
                     {
                         f.SubfieldName = config_cols[5];
                     }
-                    fields.Add(f);
+                    working.Header.Add(f);
                 }
             }
-            foreach (Field f in fields)
+            foreach (Field f in working.Header)
             {
                 if (!string.IsNullOrEmpty(f.SubfieldName))
                 {
-                    foreach (Field f2 in fields)
+                    foreach (Field f2 in working.Header)
                     {
                         if (f2.SourceColumnName == f.SubfieldName)
                         {
@@ -130,7 +131,7 @@ namespace ESMERALDA
             for (i = 0; i < meta_rows.Length; i++)
             {
                 string[] tokens = meta_rows[i].Split(col_delim2);
-                foreach (Field f in fields)
+                foreach (Field f in working.Header)
                 {
                     if (f.SourceColumnName == tokens[0])
                     {
@@ -144,7 +145,6 @@ namespace ESMERALDA
                     }
                 }
             }
-            working.Header = fields.ToArray<Field>();
             this.PopulateFields(conn, working);
             conn.Close();
             base.SetSessionValue("WorkingDataSet", working);
@@ -157,12 +157,12 @@ namespace ESMERALDA
             string specTable = string.Empty;
             string metadata_table = string.Empty;
             int j = 0;
-            for (int i = 0; i < working.Header.Length; i++)
+            for (int i = 0; i < working.Header.Count; i++)
             {
                 TableRow tr = new TableRow();
                 TableCell tc = new TableCell {
                     ID = "header_sourcename" + i.ToString(),
-                    Text = working.Header[i].SourceColumnName
+                    Text = ((Field)working.Header[i]).SourceColumnName
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell();
@@ -232,7 +232,7 @@ namespace ESMERALDA
                         if (f.DBType == Field.FieldType.Time)
                         {
                             dl.Items.Add(new ListItem(f.Name, f.SourceColumnName));
-                            if ((working.Header[i].Subfield != null) && (working.Header[i].Subfield.SourceColumnName == f.SourceColumnName))
+                            if (((Field)working.Header[i]).Subfield != null && ((Field)working.Header[i]).Subfield.SourceColumnName == f.SourceColumnName)
                             {
                                 dl.SelectedIndex = dl.Items.Count - 1;
                                 break;
@@ -258,11 +258,11 @@ namespace ESMERALDA
                 tc.Controls.Add(cb);
                 tr.Cells.Add(tc);
                 tc = new TableCell {
-                    Text = "<a id='metadata_" + i.ToString() + "' href='javascript:editAddMetadata(\"metadata_" + i.ToString() + "\", \"" + working.Header[i].SourceColumnName + "\")'>Edit Metadata</a>"
+                    Text = "<a id='metadata_" + i.ToString() + "' href='javascript:editAddMetadata(\"metadata_" + i.ToString() + "\", \"" + ((Field)working.Header[i]).SourceColumnName + "\")'>Edit Metadata</a>"
                 };
                 tr.Cells.Add(tc);
                 this.tblDataField.Rows.Add(tr);
-                string specstring = working.Header[i].SourceColumnName + "|" + working.Header[i].Name + "|" + ((int) working.Header[i].DBType).ToString() + "|";
+                string specstring = ((Field)working.Header[i]).SourceColumnName + "|" + working.Header[i].Name + "|" + ((int) working.Header[i].DBType).ToString() + "|";
                 if (working.Header[i].FieldMetric != null)
                 {
                     specstring = specstring + working.Header[i].FieldMetric.ID.ToString();
@@ -272,13 +272,13 @@ namespace ESMERALDA
                     specstring = specstring + Guid.Empty.ToString();
                 }
                 specstring = specstring + "|1";
-                if (working.Header[i].Subfield == null)
+                if (((Field)working.Header[i]).Subfield == null)
                 {
                     specstring = specstring + "|";
                 }
                 else
                 {
-                    specstring = specstring + "|" + working.Header[i].Subfield.SourceColumnName;
+                    specstring = specstring + "|" + ((Field)working.Header[i]).Subfield.SourceColumnName;
                 }
                 if (string.IsNullOrEmpty(specTable))
                 {
@@ -288,7 +288,7 @@ namespace ESMERALDA
                 {
                     specTable = specTable + ";" + specstring;
                 }
-                string metadata_string = working.Header[i].SourceColumnName + "|" + working.Header[i].Metadata.observation_methodology + "|" + working.Header[i].Metadata.instrument + "|" + working.Header[i].Metadata.analysis_methodology + "|" + working.Header[i].Metadata.processing_methodology + "|" + working.Header[i].Metadata.citations + "|" + working.Header[i].Metadata.description;
+                string metadata_string = ((Field)working.Header[i]).SourceColumnName + "|" + ((Field)working.Header[i]).Metadata.observation_methodology + "|" + ((Field)working.Header[i]).Metadata.instrument + "|" + ((Field)working.Header[i]).Metadata.analysis_methodology + "|" + ((Field)working.Header[i]).Metadata.processing_methodology + "|" + ((Field)working.Header[i]).Metadata.citations + "|" + ((Field)working.Header[i]).Metadata.description;
                 if (string.IsNullOrEmpty(metadata_table))
                 {
                     metadata_table = metadata_string;
@@ -384,7 +384,8 @@ namespace ESMERALDA
                 {
                     conn = base.ConnectToConfigString("RepositoryConnection");
                     List<Metric> current_metrics = base.Metrics;
-                    Dataset newdataset = Dataset.Load(conn, setID, current_metrics);
+                    Dataset newdataset = new Dataset();
+                    newdataset.Load(conn, setID, null, current_metrics);
                     if (newdataset != null)
                     {
                         Guid myId = (Guid) base.GetSessionValue("SessionID");
@@ -437,7 +438,7 @@ namespace ESMERALDA
             this.SetDivVisibility(working);
             List<string> uploads = (List<string>) base.GetSessionValue("UploadedFiles");
             this.PopulateUploads(uploads);
-            if (!string.IsNullOrEmpty(working.TableName))
+            if (!string.IsNullOrEmpty(working.SQLName))
             {
                 this.btnDeleteExistingData.Visible = true;
             }
@@ -637,6 +638,7 @@ namespace ESMERALDA
             starttime = DateTime.Now;
             Debug.WriteLine("Time to upload: " + ((int) debugtime.TotalMilliseconds).ToString() + "ms");
             int comma_num_fields = 0;
+
             char delim_char = ',';
             char[] delim_char_array = new char[] { ',' };
             int count = 0;
@@ -673,8 +675,34 @@ namespace ESMERALDA
                     tab_num_fields = count;
                 }
             }
+
+            delim_char = ' ';
+            delim_char_array[0] = ' ';
+            int space_num_fields = 0;
+            foreach (string s in rows)
+            {
+                count = 1;
+                foreach (char c in s)
+                {
+                    if (c == delim_char)
+                    {
+                        count++;
+                    }
+                }
+                if (count > space_num_fields)
+                {
+                    space_num_fields = count;
+                }
+            }
+
             int num_fields = 0;
-            if (tab_num_fields > comma_num_fields)
+            if (tab_num_fields == 1 && comma_num_fields == 1 && space_num_fields > 1)
+            {
+                num_fields = space_num_fields;
+                delim_char = ' ';
+                delim_char_array[0] = ' ';
+            }
+            else if (tab_num_fields > comma_num_fields)
             {
                 num_fields = tab_num_fields;
                 delim_char = '\t';
@@ -705,7 +733,7 @@ namespace ESMERALDA
             missing_fields = new List<string>();
             extra_fields = new List<string>();
 
-            if ((working.Header != null) && (working.Header.Length > 0))
+            if ((working.Header != null) && (working.Header.Count > 0))
             {                
                 foreach (Field f in working.Header)
                 {
@@ -786,7 +814,9 @@ namespace ESMERALDA
                         break;
                     }
                 }
-                working.Header = fields.ToArray<Field>();
+                working.Header = new List<QueryField>();
+                foreach (Field f2 in fields)
+                    working.Header.Add(f2);
             }
             if (missing_fields.Count > 0)
             {
@@ -809,7 +839,8 @@ namespace ESMERALDA
             }
             if (projectid != Guid.Empty)
             {
-                working.ParentProject = Project.Load(conn, projectid);
+                working.ParentProject = new Project();
+                working.ParentProject.Load(conn, projectid);
             }
             base.SetSessionValue("WorkingDataSet", working);
             Guid myId = (Guid) base.GetSessionValue("SessionID");

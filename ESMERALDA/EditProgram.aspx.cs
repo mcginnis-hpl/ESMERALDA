@@ -49,7 +49,8 @@ protected void btnSave_Click(object sender, EventArgs e)
                 SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (programid != Guid.Empty)
                 {
-                    theProgram = Program.Load(conn, programid);
+                    theProgram = new Program();
+                    theProgram.Load(conn, programid);
                 }
                 else
                 {

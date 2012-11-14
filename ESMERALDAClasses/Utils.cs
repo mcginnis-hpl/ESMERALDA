@@ -15,6 +15,13 @@
             return ret;
         }
 
+        public static SqlConnection ConnectToDatabaseReadOnly(string dbName)
+        {
+            SqlConnection ret = new SqlConnection("Server=10.1.13.205;Database=" + dbName + "; User Id= SqlServer_Client; password= p@$$w0rd;");
+            ret.Open();
+            return ret;
+        }
+
         public static DateTime ConvertDateFromUTC(string inValue, TimeZoneInfo timezone)
         {
             DateTime val = DateTime.MinValue;
@@ -116,6 +123,48 @@
                 }
             }
             return result.ToString();
+        }
+
+        public static string GetEntityType(Guid inID, SqlConnection conn)
+        {
+            string ret = string.Empty;
+            SqlCommand query = new SqlCommand {
+                Connection = conn,
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "sp_LoadView",
+                CommandTimeout = 60
+            };
+            query.Parameters.Add(new SqlParameter("@inID", inID));
+            SqlDataReader reader = query.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(reader.GetOrdinal("view_id")))
+                {
+                    ret = "VIEW";
+                }
+            }
+            reader.Close();
+            if (string.IsNullOrEmpty(ret))
+            {
+                query = new SqlCommand
+                {
+                    Connection = conn,
+                    CommandType = CommandType.StoredProcedure,
+                    CommandText = "sp_LoadDataset",
+                    CommandTimeout = 60
+                };
+                query.Parameters.Add(new SqlParameter("@inID", inID));
+                reader = query.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (!reader.IsDBNull(reader.GetOrdinal("view_id")))
+                    {
+                        ret = "DATASET";
+                    }
+                }
+                reader.Close();
+            }
+            return ret;
         }
     }
 }

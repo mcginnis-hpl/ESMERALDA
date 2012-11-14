@@ -73,22 +73,21 @@ namespace ESMERALDA
             int i;
             string ret = string.Empty;
             string dbname = working.SourceData.ParentProject.database_name;
-            string tablename = working.SourceData.TableName;
-            SqlConnection conn = base.ConnectToDatabase(dbname);
+            SqlConnection conn = base.ConnectToDatabaseReadOnly(dbname);
             int numrows = -1;
             string newline = string.Empty;
             if (string.IsNullOrEmpty(working.SQLQuery))
             {
                 i = 0;
-                while (i < working.Conditions.Count)
+                while (i < working.Header.Count)
                 {
-                    if (working.Conditions[i].Type != ViewCondition.ConditionType.Exclude)
+                    if (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude)
                     {
                         if (!string.IsNullOrEmpty(newline))
                         {
                             newline = newline + ",";
                         }
-                        newline = newline + working.Conditions[i].SourceField.Name;
+                        newline = newline + ((ViewCondition)working.Header[i]).SourceField.Name;
                     }
                     i++;
                 }
@@ -103,23 +102,23 @@ namespace ESMERALDA
                     while (reader.Read())
                     {
                         newline = string.Empty;
-                        for (i = 0; i < working.Conditions.Count; i++)
+                        for (i = 0; i < working.Header.Count; i++)
                         {
-                            if (working.Conditions[i].Type != ViewCondition.ConditionType.Exclude)
+                            if (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude)
                             {
                                 if (!string.IsNullOrEmpty(newline))
                                 {
                                     newline = newline + ",";
                                 }
-                                if (!reader.IsDBNull(reader.GetOrdinal(working.Conditions[i].SQLName)))
+                                if (!reader.IsDBNull(reader.GetOrdinal(working.Header[i].SQLColumnName)))
                                 {
-                                    if (working.Conditions[i].CondConversion != null)
+                                    if (((ViewCondition)working.Header[i]).CondConversion != null)
                                     {
-                                        newline = newline + working.Conditions[i].CondConversion.DestinationMetric.Format(reader[working.Conditions[i].SQLName].ToString());
+                                        newline = newline + ((ViewCondition)working.Header[i]).CondConversion.DestinationMetric.Format(reader[working.Header[i].SQLColumnName].ToString());
                                     }
                                     else
                                     {
-                                        newline = newline + working.Conditions[i].SourceField.FieldMetric.Format(reader[working.Conditions[i].SQLName].ToString());
+                                        newline = newline + ((ViewCondition)working.Header[i]).SourceField.FieldMetric.Format(reader[working.Header[i].SQLColumnName].ToString());
                                     }
                                 }
                             }

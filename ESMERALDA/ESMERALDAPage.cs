@@ -33,6 +33,13 @@ namespace ESMERALDA
             return ret;
         }
 
+        public SqlConnection ConnectToDatabaseReadOnly(string dbName)
+        {
+            SqlConnection ret = new SqlConnection("Server=10.1.13.205;Database=" + dbName + "; User Id= SqlServer_Reader; password= p@$$w0rd;");
+            ret.Open();
+            return ret;
+        }
+
         public static string CreatePasswordHash(string pwd, string salt)
         {
             return (FormsAuthentication.HashPasswordForStoringInConfigFile(pwd + salt, "SHA1") + salt);

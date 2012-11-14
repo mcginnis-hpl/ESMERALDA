@@ -12,7 +12,13 @@
         public Person Owner = null;
         public DateTime Timestamp = DateTime.MinValue;
 
-        public static void Load(SqlConnection conn, EsmeraldaEntity inEntity)
+        public virtual void Load(SqlConnection conn, Guid inID)
+        {
+            ID = inID;
+            Load(conn);
+        }
+
+        public virtual void Load(SqlConnection conn)
         {
             SqlCommand query = new SqlCommand {
                 CommandType = CommandType.StoredProcedure,
@@ -20,7 +26,7 @@
                 CommandTimeout = 60,
                 Connection = conn
             };
-            query.Parameters.Add(new SqlParameter("@inID", inEntity.ID));
+            query.Parameters.Add(new SqlParameter("@inID", ID));
             SqlDataReader reader = query.ExecuteReader();
             Guid ownerid = Guid.Empty;
             while (reader.Read())
@@ -29,7 +35,7 @@
                 {
                     if (!reader.IsDBNull(reader.GetOrdinal("Keyword")))
                     {
-                        inEntity.Keywords.Add(reader["Keyword"].ToString());
+                        Keywords.Add(reader["Keyword"].ToString());
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("CreatedBy")))
                     {
@@ -37,14 +43,15 @@
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("CreatedOn")))
                     {
-                        inEntity.Timestamp = DateTime.Parse(reader["CreatedOn"].ToString());
+                        Timestamp = DateTime.Parse(reader["CreatedOn"].ToString());
                     }
                 }
             }
             reader.Close();
             if (ownerid != Guid.Empty)
             {
-                inEntity.Owner = Person.Load(conn, ownerid);
+                Owner = new Person();
+                Owner.Load(conn, ownerid);
             }
         }
 

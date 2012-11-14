@@ -12,6 +12,7 @@
         public static Guid JulianDayID = new Guid("01d8b4cb-e853-492e-9f4a-45c331923c0f");
         protected TimeZoneInfo myTimeZone = null;
         public string Name = string.Empty;
+        public static List<ViewCondition> emptyConditions = new List<ViewCondition>();
 
         public string Format(string value)
         {
@@ -62,7 +63,7 @@
             reader.Close();
             foreach (Metric m in ret)
             {
-                EsmeraldaEntity.Load(conn, m);
+                m.Load(conn);
             }
             return ret;
         }

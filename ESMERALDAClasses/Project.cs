@@ -24,18 +24,15 @@
             return (((((((((ret + "<project_name>" + this.project_name + "</project_name>") + "<acronym>" + this.acronym + "</acronym>") + "<project_url>" + this.project_url + "</project_url>") + "<description>" + this.description + "</description>") + "<start_date>" + this.start_date.ToShortDateString() + "</start_date>") + "<end_date>" + this.end_date.ToShortDateString() + "</end_date>") + "<logo_url>" + this.logo_url + "</logo_url>") + "<small_logo_url>" + this.small_logo_url + "</small_logo_url>") + "</project>");
         }
 
-        public static Project Load(SqlConnection conn, Guid inID)
+        public override void Load(SqlConnection conn)
         {
-            Project ret = new Project {
-                ID = inID
-            };
             SqlCommand query = new SqlCommand {
                 Connection = conn,
                 CommandType = CommandType.StoredProcedure,
                 CommandText = "sp_LoadProject",
                 CommandTimeout = 60
             };
-            query.Parameters.Add(new SqlParameter("@inprojectid", inID));
+            query.Parameters.Add(new SqlParameter("@inprojectid", ID));
             SqlDataReader reader = query.ExecuteReader();
             Guid programid = Guid.Empty;
             while (reader.Read())
@@ -44,35 +41,35 @@
                 {
                     if (!reader.IsDBNull(reader.GetOrdinal("project_name")))
                     {
-                        ret.project_name = reader["project_name"].ToString();
+                        project_name = reader["project_name"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("acronym")))
                     {
-                        ret.acronym = reader["acronym"].ToString();
+                        acronym = reader["acronym"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("description")))
                     {
-                        ret.description = reader["description"].ToString();
+                        description = reader["description"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("project_url")))
                     {
-                        ret.project_url = reader["project_url"].ToString();
+                        project_url = reader["project_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("start_date")))
                     {
-                        ret.start_date = DateTime.Parse(reader["start_date"].ToString());
+                        start_date = DateTime.Parse(reader["start_date"].ToString());
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("end_date")))
                     {
-                        ret.end_date = DateTime.Parse(reader["end_date"].ToString());
+                        end_date = DateTime.Parse(reader["end_date"].ToString());
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("logo_url")))
                     {
-                        ret.logo_url = reader["logo_url"].ToString();
+                        logo_url = reader["logo_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("small_logo_url")))
                     {
-                        ret.small_logo_url = reader["small_logo_url"].ToString();
+                        small_logo_url = reader["small_logo_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("program_id")))
                     {
@@ -80,17 +77,17 @@
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("database_name")))
                     {
-                        ret.override_database_name = reader["database_name"].ToString();
+                        override_database_name = reader["database_name"].ToString();
                     }
                 }
             }
             reader.Close();
             if (programid != Guid.Empty)
             {
-                ret.parentProgram = Program.Load(conn, programid);
+                parentProgram = new Program();
+                parentProgram.Load(conn);
             }
-            EsmeraldaEntity.Load(conn, ret);
-            return ret;
+            base.Load(conn);
         }
 
         public override void Save(SqlConnection conn)

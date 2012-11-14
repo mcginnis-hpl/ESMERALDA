@@ -32,7 +32,8 @@ namespace ESMERALDA
                 Guid projectid = new Guid(this.comboParentProgram.SelectedValue);
                 if ((theProject.parentProgram == null) || (theProject.parentProgram.ID != projectid))
                 {
-                    theProject.parentProgram = Program.Load(conn, projectid);
+                    theProject.parentProgram = new Program();
+                    theProject.parentProgram.Load(conn, projectid);
                 }
             }
             this.PopulateFields(conn, theProject);
@@ -57,18 +58,18 @@ namespace ESMERALDA
                         programid = new Guid(base.Request.Params[i]);
                     }
                 }
-                Project theProject = null;
+                Project theProject = new Project();
                 SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (projectid != Guid.Empty)
-                {
-                    theProject = Project.Load(conn, projectid);
+                {                    
+                    theProject.Load(conn, projectid);
                 }
                 else
                 {
-                    theProject = new Project();
                     if (programid != Guid.Empty)
                     {
-                        theProject.parentProgram = Program.Load(conn, programid);
+                        theProject.parentProgram = new Program();
+                        theProject.parentProgram.Load(conn, programid);
                     }
                 }
                 this.PopulateFields(conn, theProject);

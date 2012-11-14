@@ -1,121 +1,193 @@
-﻿namespace ESMERALDAClasses
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Data;
-    using System.Data.SqlClient;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data;
+using System.Data.SqlClient;
 
-    public class View : EsmeraldaEntity
+namespace ESMERALDAClasses
+{
+    public class QueryField : EsmeraldaEntity
     {
+        public string SQLColumnName;
+        public string Name;
+        protected Field.FieldType m_DBType;
+        protected Metric m_FieldMetric;
+        public Field_Metadata Metadata;
+
+        public virtual Metric FieldMetric
+        {
+            get
+            {
+                return m_FieldMetric;
+            }
+            set
+            {
+                m_FieldMetric = value;
+            }
+        }
+        public virtual string FormattedColumnName
+        {
+            get
+            {
+                return string.Empty;
+            }
+        }
+        public virtual Field.FieldType DBType
+        {
+            get
+            {
+                return m_DBType;
+            }
+            set
+            {
+                m_DBType = value;
+            }
+        }
+        public bool IsSubfield;
+
+        public virtual string GetMetadata()
+        {
+            return string.Empty;
+        }
+
+        public QueryField()
+        {
+            SQLColumnName = string.Empty;
+            IsSubfield = false;
+            Name = string.Empty;
+            m_FieldMetric = null;
+            m_DBType = Field.FieldType.None;
+            Metadata = new Field_Metadata();
+        }
+
+    }
+
+    public abstract class QuerySet : EsmeraldaEntity
+    {
+        public Project ParentProject;
+        public List<QueryField> Header;
+        public string SQLName;
+        public string Name;
+
+        public QuerySet()
+        {
+            Header = new List<QueryField>();
+            ParentProject = null;
+            SQLName = string.Empty;
+        }
+
+        public virtual string GetMetadata()
+        {
+            return string.Empty;
+        }
+
+        public abstract void Load(SqlConnection conn, Guid inID, List<Conversion> globalConversions, List<Metric> metrics);
+    }
+   
+    public class View : QuerySet
+    {
+        public QuerySet SourceData;
+        public string Description;
         public string BriefDescription;
-        public List<ViewCondition> Conditions;
         public Person CreatedBy;
         public DateTime CreatedOn;
-        public string Description;
-        public string Name;
-        public Dataset SourceData;
         public string SQLQuery;
-        public string ViewSQLName;
 
-        public View(Dataset inData)
+        public View(QuerySet inData)
+            : base()
         {
-            this.SourceData = inData;
-            this.Conditions = new List<ViewCondition>();
-            this.Name = string.Empty;
-            this.Description = string.Empty;
-            this.BriefDescription = string.Empty;
-            this.CreatedBy = null;
-            this.CreatedOn = DateTime.MinValue;
-            this.ViewSQLName = string.Empty;
-            base.ID = Guid.NewGuid();
-            this.SQLQuery = string.Empty;
+            SourceData = inData;
+            Name = string.Empty;
+            Description = string.Empty;
+            BriefDescription = string.Empty;
+            CreatedBy = null;
+            CreatedOn = DateTime.MinValue;
+            ID = Guid.NewGuid();
+            SQLQuery = string.Empty;
+        }
+
+        public View()
+            : base()
+        {
+            SourceData = null;
+            Name = string.Empty;
+            Description = string.Empty;
+            BriefDescription = string.Empty;
+            CreatedBy = null;
+            CreatedOn = DateTime.MinValue;
+            ID = Guid.NewGuid();
+            SQLQuery = string.Empty;
+        }
+
+        public override string GetMetadata()
+        {
+            string ret = "<data_view>";
+            ret += "<view_name>" + Name + "</view_name>";
+            ret += "<brief_description>" + BriefDescription + "</brief_description>";
+            ret += "<description>" + Description + "</description>";
+            ret += "<created_on>" + CreatedOn.ToShortDateString() + "</created_on>";
+            if (CreatedBy != null)
+            {
+                ret += "<createdby>" + CreatedBy.GetMetadata() + "</createdby>";
+            }
+            if (SourceData != null)
+            {
+                if (SourceData.ParentProject != null)
+                {
+                    if (SourceData.ParentProject.parentProgram != null)
+                    {
+                        ret += "<parent_program>" + SourceData.ParentProject.parentProgram.GetMetadata() + "</parent_program>";
+                    }
+                    ret += "<parent_project>" + SourceData.ParentProject.GetMetadata() + "</parent_project>";
+                }
+                ret += "<dataset>" + SourceData.GetMetadata() + "</dataset>";
+            }
+            ret += "</data_view>";
+            return ret;
         }
 
         public void AutopopulateConditions()
         {
-            foreach (Field f in this.SourceData.Header)
+            foreach (QueryField f in SourceData.Header)
             {
                 if (!f.IsSubfield)
                 {
                     ViewCondition cond = new ViewCondition(f, ViewCondition.ConditionType.None, this);
-                    this.Conditions.Add(cond);
+                    Header.Add(cond);
                 }
             }
-        }
-
-        protected void CreateSQLView(SqlConnection conn)
-        {
-            SqlCommand query = new SqlCommand {
-                CommandType = CommandType.Text
-            };
-            string cmd = "IF OBJECT_ID ('dbo." + this.ViewSQLName + "', 'V') IS NOT NULL DROP VIEW dbo." + this.ViewSQLName + " ;";
-            query.CommandText = cmd;
-            query.CommandTimeout = 60;
-            query.Connection = conn;
-            query.ExecuteNonQuery();
-            query = new SqlCommand {
-                CommandType = CommandType.Text
-            };
-            cmd = "CREATE VIEW " + this.ViewSQLName + " AS " + this.GetQuery(-1) + ";";
-            query.CommandText = cmd;
-            query.CommandTimeout = 60;
-            query.Connection = conn;
-            query.ExecuteNonQuery();
-        }
-
-        public string GetMetadata()
-        {
-            string ret = "<data_view>";
-            ret = (((ret + "<view_name>" + this.Name + "</view_name>") + "<brief_description>" + this.BriefDescription + "</brief_description>") + "<description>" + this.Description + "</description>") + "<created_on>" + this.CreatedOn.ToShortDateString() + "</created_on>";
-            if (this.CreatedBy != null)
-            {
-                ret = ret + "<createdby>" + this.CreatedBy.GetMetadata() + "</createdby>";
-            }
-            if (this.SourceData != null)
-            {
-                if (this.SourceData.ParentProject != null)
-                {
-                    if (this.SourceData.ParentProject.parentProgram != null)
-                    {
-                        ret = ret + "<parent_program>" + this.SourceData.ParentProject.parentProgram.GetMetadata() + "</parent_program>";
-                    }
-                    ret = ret + "<parent_project>" + this.SourceData.ParentProject.GetMetadata() + "</parent_project>";
-                }
-                ret = ret + "<dataset>" + this.SourceData.GetMetadata() + "</dataset>";
-            }
-            return (ret + "</data_view>");
         }
 
         public string GetQuery(int numrows)
         {
-            int i;
             string ret = string.Empty;
-            if (!string.IsNullOrEmpty(this.SQLQuery))
-            {
-                return this.SQLQuery;
-            }
+            if (!string.IsNullOrEmpty(SQLQuery))
+                return SQLQuery;
+
             ret = "SELECT";
             if (numrows > 0)
             {
-                ret = ret + " TOP(" + numrows.ToString() + ")";
+                ret += " TOP(" + numrows + ")";
             }
             bool init = false;
-            for (i = 0; i < this.Conditions.Count; i++)
+            for (int i = 0; i < Header.Count; i++)
             {
-                if ((this.Conditions[i].SourceField != null) && (this.Conditions[i].Type != ViewCondition.ConditionType.Exclude))
+                ViewCondition vc = (ViewCondition)Header[i];
+                if (vc.Type != ViewCondition.ConditionType.Exclude)
                 {
                     if (init)
                     {
-                        ret = ret + ",";
+                        ret += ",";
                     }
                     else
                     {
                         init = true;
                     }
-                    if (this.Conditions[i].Type == ViewCondition.ConditionType.Formula)
+                    if (vc.Type == ViewCondition.ConditionType.Formula)
                     {
-                        string formula_text = this.Conditions[i].Condition;
-                        foreach (Field f in this.SourceData.Header)
+                        string formula_text = vc.Condition;
+                        foreach (QueryField f in SourceData.Header)
                         {
                             if (formula_text.IndexOf("[" + f.Name + "]") >= 0)
                             {
@@ -126,15 +198,15 @@
                                 formula_text = formula_text.Replace("[" + f.SQLColumnName + "]", f.FormattedColumnName);
                             }
                         }
-                        ret = ret + " (" + formula_text + ") AS " + this.Conditions[i].SQLName;
+                        ret += " (" + formula_text + ") AS " + vc.SQLColumnName;
                     }
-                    else if ((this.Conditions[i].Type == ViewCondition.ConditionType.Conversion) && (this.Conditions[i].SourceField.DBType != Field.FieldType.DateTime))
+                    else if (vc.Type == ViewCondition.ConditionType.Conversion && vc.DBType != Field.FieldType.DateTime)
                     {
-                        ret = ret + " Repository_Metadata.dbo." + this.Conditions[i].CondConversion.FormulaName + "(" + this.Conditions[i].SourceField.FormattedColumnName + ") AS " + this.Conditions[i].SQLName;
+                        ret += " Repository_Metadata.dbo." + vc.CondConversion.FormulaName + "(" + vc.FormattedColumnName + ") AS " + vc.SQLColumnName;
                     }
                     else
                     {
-                        ret = ret + this.Conditions[i].BuildClause();
+                        ret += vc.BuildClause();
                     }
                 }
             }
@@ -142,68 +214,155 @@
             {
                 return string.Empty;
             }
-            ret = ret + " FROM [" + this.SourceData.TableName + "]";
+            ret += " FROM [" + SourceData.SQLName + "]";
             init = false;
-            for (i = 0; i < this.Conditions.Count; i++)
+            for (int i = 0; i < Header.Count; i++)
             {
-                if (this.Conditions[i].Type == ViewCondition.ConditionType.Filter)
+                if (((ViewCondition)Header[i]).Type == ViewCondition.ConditionType.Filter)
                 {
                     if (init)
                     {
-                        ret = ret + " AND";
+                        ret += " AND";
                     }
                     else
                     {
-                        ret = ret + " WHERE";
+                        ret += " WHERE";
                         init = true;
                     }
-                    ret = ret + " (" + this.Conditions[i].SourceField.FormattedColumnName + " " + this.Conditions[i].Condition + ")";
+                    ret += " (" + ((ViewCondition)Header[i]).SourceField.FormattedColumnName + " " + ((ViewCondition)Header[i]).Condition + ")";
                 }
             }
             init = false;
-            for (i = 0; i < this.Conditions.Count; i++)
+            for (int i = 0; i < Header.Count; i++)
             {
-                if (this.Conditions[i].Type == ViewCondition.ConditionType.SortAscending)
+                if (((ViewCondition)Header[i]).Type == ViewCondition.ConditionType.SortAscending)
                 {
                     if (init)
                     {
-                        ret = ret + ",";
+                        ret += ",";
                     }
                     else
                     {
-                        ret = ret + " ORDER BY";
+                        ret += " ORDER BY";
                         init = true;
                     }
-                    ret = ret + " " + this.Conditions[i].SourceField.FormattedColumnName + " ASC";
+                    ret += " " + ((ViewCondition)Header[i]).SourceField.FormattedColumnName + " ASC";
                 }
-                else if (this.Conditions[i].Type == ViewCondition.ConditionType.SortDescending)
+                else if (((ViewCondition)Header[i]).Type == ViewCondition.ConditionType.SortDescending)
                 {
                     if (init)
                     {
-                        ret = ret + ",";
+                        ret += ",";
                     }
                     else
                     {
-                        ret = ret + " ORDER BY";
+                        ret += " ORDER BY";
                         init = true;
                     }
-                    ret = ret + " " + this.Conditions[i].SourceField.FormattedColumnName + " DESC";
+                    ret += " " + ((ViewCondition)Header[i]).SourceField.FormattedColumnName + " DESC";
                 }
             }
             return ret;
         }
 
-        public static View LoadView(SqlConnection conn, Guid viewID, List<Conversion> globalConversions, List<Metric> metrics)
+        protected void CreateSQLView(SqlConnection conn)
         {
-            SqlCommand query = new SqlCommand {
-                CommandType = CommandType.StoredProcedure,
-                CommandText = "sp_LoadView",
-                CommandTimeout = 60,
-                Connection = conn
-            };
+            SqlCommand query = new SqlCommand();
+            query.CommandType = CommandType.Text;
+            string cmd = "IF OBJECT_ID ('dbo." + SQLName + "', 'V') IS NOT NULL DROP VIEW dbo." + SQLName + " ;";
+            query.CommandText = cmd;
+            query.CommandTimeout = 60;
+            query.Connection = conn;
+            query.ExecuteNonQuery();
+
+            query = new SqlCommand();
+            query.CommandType = CommandType.Text;
+            cmd = "CREATE VIEW " + SQLName + " AS " + GetQuery(-1) + ";";
+            query.CommandText = cmd;
+            query.CommandTimeout = 60;
+            query.Connection = conn;
+            query.ExecuteNonQuery();
+        }
+
+        public override void Save(SqlConnection conn)
+        {
+            SqlCommand query = null;
+            string dbname = SourceData.ParentProject.database_name;
+            string query_string = GetQuery(-1);
+            if (!string.IsNullOrEmpty(query_string))
+            {
+                SqlConnection test_conn = Utils.ConnectToDatabaseReadOnly(dbname);
+                query = new SqlCommand();
+                query.CommandType = CommandType.Text;
+                query.CommandText = query_string;
+                query.CommandTimeout = 60;
+                query.Connection = test_conn;
+                try
+                {
+                    SqlDataReader r = query.ExecuteReader();
+                    while (r.Read())
+                        break;
+                    r.Close();
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error in view query: " + ex.Message + "; " + ex.StackTrace);
+                }
+                finally
+                {
+                    test_conn.Close();
+                }
+            }
+            query = new SqlCommand();
+            if (ID == Guid.Empty)
+            {
+                ID = Guid.NewGuid();
+            }
+            query.CommandType = CommandType.StoredProcedure;
+            query.CommandText = "sp_WriteView";
+            query.CommandTimeout = 60;
+            query.Connection = conn;
+            query.Parameters.Add(new SqlParameter("@inview_id", ID));
+            query.Parameters.Add(new SqlParameter("@indataset_id", SourceData.ID));
+            query.Parameters.Add(new SqlParameter("@inview_name", Name));
+            if (string.IsNullOrEmpty(SQLName))
+                SQLName = Utils.CreateDBName(Name);
+            query.Parameters.Add(new SqlParameter("@inview_sqlname", SQLName));
+            query.Parameters.Add(new SqlParameter("@indescription", Description));
+            query.Parameters.Add(new SqlParameter("@inbrief_description", BriefDescription));
+            if (CreatedOn == DateTime.MinValue)
+                CreatedOn = DateTime.Now;
+            query.Parameters.Add(new SqlParameter("@increatedon", CreatedOn));
+            if (CreatedBy != null)
+            {
+                query.Parameters.Add(new SqlParameter("@increatedby", CreatedBy.ID));
+            }
+            query.Parameters.Add(new SqlParameter("@query", SQLQuery));
+            query.ExecuteNonQuery();
+
+            foreach (ViewCondition v in Header)
+            {
+                if (v.Owner == null)
+                    v.Owner = Owner;
+                v.Save(conn, ID);
+            }
+            base.Save(conn);            
+            SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
+            CreateSQLView(dataconn);
+            dataconn.Close();
+        }
+
+        public override void Load(SqlConnection conn, Guid viewID, List<Conversion> globalConversions, List<Metric> metrics)
+        {
+            SqlCommand query = new SqlCommand();
+            query.CommandType = CommandType.StoredProcedure;
+            query.CommandText = "sp_LoadView";
+            query.CommandTimeout = 60;
+            query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inID", viewID));
             SqlDataReader reader = query.ExecuteReader();
             Guid enteredbyid = Guid.Empty;
+            Guid projectid = Guid.Empty;
             Guid sourceid = Guid.Empty;
             string view_name = string.Empty;
             string view_briefdescription = string.Empty;
@@ -211,69 +370,69 @@
             string view_sqlname = string.Empty;
             string view_query = string.Empty;
             DateTime view_createdon = DateTime.MinValue;
+
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
                 {
                     sourceid = new Guid(reader["dataset_id"].ToString());
                     if (!reader.IsDBNull(reader.GetOrdinal("view_name")))
-                    {
                         view_name = reader["view_name"].ToString();
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("description")))
-                    {
                         view_description = reader["description"].ToString();
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("brief_description")))
-                    {
                         view_briefdescription = reader["brief_description"].ToString();
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("createdon")))
-                    {
                         view_createdon = DateTime.Parse(reader["createdon"].ToString());
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("createdby")))
-                    {
                         enteredbyid = new Guid(reader["createdby"].ToString());
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("view_sqlname")))
-                    {
                         view_sqlname = reader["view_sqlname"].ToString();
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("query")))
-                    {
                         view_query = reader["query"].ToString();
-                    }
                 }
             }
             reader.Close();
-            Dataset source = Dataset.Load(conn, sourceid, metrics);
-            View ret = new View(source) {
-                ID = viewID,
-                Name = view_name,
-                BriefDescription = view_briefdescription,
-                Description = view_description,
-                CreatedOn = view_createdon,
-                ViewSQLName = view_sqlname,
-                SQLQuery = view_query
-            };
-            query = new SqlCommand {
-                CommandType = CommandType.StoredProcedure,
-                CommandText = "sp_LoadViewConditions",
-                CommandTimeout = 60,
-                Connection = conn
-            };
+
+            QuerySet source = null;
+            string source_type = Utils.GetEntityType(sourceid, conn);
+            if (source_type == "VIEW")
+            {
+                source = new View();
+                source.Load(conn, sourceid, globalConversions, metrics);
+            }
+            else
+            {
+                source = new Dataset();
+                source.Load(conn, sourceid, globalConversions, metrics);
+            }
+
+            View ret = new View(source);
+            ret.ID = viewID;
+            ret.Name = view_name;
+            ret.BriefDescription = view_briefdescription;
+            ret.Description = view_description;
+            ret.CreatedOn = view_createdon;
+            ret.SQLName = view_sqlname;
+            ret.SQLQuery = view_query;
+
+            query = new SqlCommand();
+            query.CommandType = CommandType.StoredProcedure;
+            query.CommandText = "sp_LoadViewConditions";
+            query.CommandTimeout = 60;
+            query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inview_id", viewID));
             reader = query.ExecuteReader();
             Guid conversion_id = Guid.Empty;
+
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("view_id")))
                 {
-                    Field sourceField = null;
+                    QueryField sourceField = null;
                     Guid fieldid = new Guid(reader["field_id"].ToString());
                     int field_type = int.Parse(reader["condition_type"].ToString());
-                    foreach (Field f in source.Header)
+                    foreach (QueryField f in source.Header)
                     {
                         if (f.ID == fieldid)
                         {
@@ -282,13 +441,10 @@
                         }
                     }
                     if (sourceField == null)
-                    {
                         continue;
-                    }
-                    ViewCondition con = new ViewCondition(sourceField, (ViewCondition.ConditionType) field_type, ret) {
-                        ID = new Guid(reader["condition_id"].ToString()),
-                        Condition = reader["condition_text"].ToString()
-                    };
+                    ViewCondition con = new ViewCondition(sourceField, (ViewCondition.ConditionType)field_type, ret);
+                    con.ID = new Guid(reader["condition_id"].ToString());
+                    con.Condition = reader["condition_text"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("condition_conversion")))
                     {
                         conversion_id = new Guid(reader["condition_conversion"].ToString());
@@ -300,61 +456,14 @@
                             }
                         }
                     }
-                    con.SQLName = reader["sql_name"].ToString();
-                    EsmeraldaEntity.Load(conn, con);
-                    ret.Conditions.Add(con);
+                    con.SQLColumnName = reader["sql_name"].ToString();
+                    con.Load(conn);
+                    Header.Add(con);
                 }
             }
             reader.Close();
-            EsmeraldaEntity.Load(conn, ret);
-            return ret;
-        }
 
-        public override void Save(SqlConnection conn)
-        {
-            SqlCommand query = new SqlCommand();
-            if (base.ID == Guid.Empty)
-            {
-                base.ID = Guid.NewGuid();
-            }
-            query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteView";
-            query.CommandTimeout = 60;
-            query.Connection = conn;
-            query.Parameters.Add(new SqlParameter("@inview_id", base.ID));
-            query.Parameters.Add(new SqlParameter("@indataset_id", this.SourceData.ID));
-            query.Parameters.Add(new SqlParameter("@inview_name", this.Name));
-            if (string.IsNullOrEmpty(this.ViewSQLName))
-            {
-                this.ViewSQLName = Utils.CreateDBName(this.Name);
-            }
-            query.Parameters.Add(new SqlParameter("@inview_sqlname", this.ViewSQLName));
-            query.Parameters.Add(new SqlParameter("@indescription", this.Description));
-            query.Parameters.Add(new SqlParameter("@inbrief_description", this.BriefDescription));
-            if (this.CreatedOn == DateTime.MinValue)
-            {
-                this.CreatedOn = DateTime.Now;
-            }
-            query.Parameters.Add(new SqlParameter("@increatedon", this.CreatedOn));
-            if (this.CreatedBy != null)
-            {
-                query.Parameters.Add(new SqlParameter("@increatedby", this.CreatedBy.ID));
-            }
-            query.Parameters.Add(new SqlParameter("@query", this.SQLQuery));
-            query.ExecuteNonQuery();
-            foreach (ViewCondition v in this.Conditions)
-            {
-                if (v.Owner == null)
-                {
-                    v.Owner = base.Owner;
-                }
-                v.Save(conn, base.ID);
-            }
-            base.Save(conn);
-            SqlConnection dataconn = Utils.ConnectToDatabase(this.SourceData.ParentProject.database_name);
-            this.CreateSQLView(dataconn);
-            dataconn.Close();
+            base.Load(conn);
         }
     }
 }
-

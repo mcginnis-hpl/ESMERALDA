@@ -53,7 +53,7 @@
                     ret.DestinationMetric = inMetrics[i];
                 }
             }
-            EsmeraldaEntity.Load(conn, ret);
+            ret.Load(conn);
             return ret;
         }
 

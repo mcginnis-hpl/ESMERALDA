@@ -5,16 +5,10 @@
     using System.Data;
     using System.Data.SqlClient;
 
-    public class Field : EsmeraldaEntity
+    public class Field : QueryField
     {
-        public int DataIndex = -1;
-        public FieldType DBType = FieldType.None;
-        public Metric FieldMetric = null;
-        public bool IsSubfield = false;
-        public Field_Metadata Metadata = new Field_Metadata();
-        public string Name = string.Empty;
+        public int DataIndex = -1;        
         public string SourceColumnName = string.Empty;
-        public string SQLColumnName = string.Empty;
         public Field Subfield = null;
         public Guid SubfieldID = Guid.Empty;
         public string SubfieldName = string.Empty;
@@ -34,7 +28,7 @@
             return ret;
         }
 
-        public string GetMetadata()
+        public override string GetMetadata()
         {
             string ret = string.Empty;
             ret = "<field>";
@@ -117,7 +111,7 @@
             base.Save(conn);
         }
 
-        public string FormattedColumnName
+        public override string FormattedColumnName
         {
             get
             {

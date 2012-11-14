@@ -64,6 +64,14 @@
     <Content Include="EditProgram.aspx" />
     <Content Include="EditProject.aspx" />
     <Content Include="GuidGenerator.aspx" />
+    <Content Include="img\header_bg.gif" />
+    <Content Include="img\loading.gif" />
+    <Content Include="img\menu_bg.gif" />
+    <Content Include="img\side_bg.gif" />
+    <Content Include="img\tab_bg.gif" />
+    <Content Include="img\tt_bottom.gif" />
+    <Content Include="img\tt_left.gif" />
+    <Content Include="img\tt_top.gif" />
     <Content Include="Scripts\esmeralda.js" />
     <Content Include="Scripts\jquery-1.4.1-vsdoc.js" />
     <Content Include="Scripts\jquery-1.4.1.js" />

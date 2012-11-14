@@ -40,6 +40,7 @@
             masterConn.ConnectionString = "SERVER = " + ServerName + "; DATABASE = master;User ID=sa;Pwd=p@$$w0rd";
             SqlCommand myCommand = new SqlCommand("CREATE DATABASE " + this.database_name + " ON PRIMARY (NAME = " + datafile_name + ", FILENAME = '" + datapath_name + "', SIZE = 2MB, FILEGROWTH = 1%) LOG ON (NAME = " + logfile_name + ", FILENAME = '" + logpath_name + "', SIZE = 1MB, MAXSIZE = 250MB, FILEGROWTH = 1%)", masterConn);
             string permissionCommand = "use " + this.database_name + ";create user SqlServer_Client from login SqlServer_Client;exec sp_addrolemember db_owner, SqlServer_Client;";
+            permissionCommand += "create user SqlServer_Reader from login SqlServer_Reader;exec sp_addrolemember db_datareader, SqlServer_Reader;";
             try
             {
                 masterConn.Open();
@@ -63,18 +64,15 @@
             return ((((((((((ret + "<program_name>" + this.program_name + "</program_name>") + "<acronym>" + this.acronym + "</acronym>") + "<program_url>" + this.program_url + "</program_url>") + "<description>" + this.description + "</description>") + "<start_date>" + this.start_date.ToShortDateString() + "</start_date>") + "<end_date>" + this.end_date.ToShortDateString() + "</end_date>") + "<logo_url>" + this.logo_url + "</logo_url>") + "<small_logo_url>" + this.small_logo_url + "</small_logo_url>") + "<database_name>" + this.database_name + "</database_name>") + "</program>");
         }
 
-        public static Program Load(SqlConnection conn, Guid inID)
+        public override void Load(SqlConnection conn)
         {
-            Program ret = new Program {
-                ID = inID
-            };
             SqlCommand query = new SqlCommand {
                 Connection = conn,
                 CommandType = CommandType.StoredProcedure,
                 CommandText = "sp_LoadProgram",
                 CommandTimeout = 60
             };
-            query.Parameters.Add(new SqlParameter("@inprogramid", inID));
+            query.Parameters.Add(new SqlParameter("@inprogramid", ID));
             SqlDataReader reader = query.ExecuteReader();
             while (reader.Read())
             {
@@ -82,45 +80,44 @@
                 {
                     if (!reader.IsDBNull(reader.GetOrdinal("program_name")))
                     {
-                        ret.program_name = reader["program_name"].ToString();
+                        program_name = reader["program_name"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("acronym")))
                     {
-                        ret.acronym = reader["acronym"].ToString();
+                        acronym = reader["acronym"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("description")))
                     {
-                        ret.description = reader["description"].ToString();
+                        description = reader["description"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("program_url")))
                     {
-                        ret.program_url = reader["program_url"].ToString();
+                        program_url = reader["program_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("start_date")))
                     {
-                        ret.start_date = DateTime.Parse(reader["start_date"].ToString());
+                        start_date = DateTime.Parse(reader["start_date"].ToString());
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("end_date")))
                     {
-                        ret.end_date = DateTime.Parse(reader["end_date"].ToString());
+                        end_date = DateTime.Parse(reader["end_date"].ToString());
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("logo_url")))
                     {
-                        ret.logo_url = reader["logo_url"].ToString();
+                        logo_url = reader["logo_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("small_logo_url")))
                     {
-                        ret.small_logo_url = reader["small_logo_url"].ToString();
+                        small_logo_url = reader["small_logo_url"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("database_name")))
                     {
-                        ret.database_name = reader["database_name"].ToString();
+                        database_name = reader["database_name"].ToString();
                     }
                 }
             }
             reader.Close();
-            EsmeraldaEntity.Load(conn, ret);
-            return ret;
+            base.Load(conn);
         }
 
         public override void Save(SqlConnection conn)

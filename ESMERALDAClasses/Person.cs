@@ -28,18 +28,15 @@
             return ((((((((((((((((ret + "<first_name>" + this.first_name + "</first_name>") + "<middle_name>" + this.middle_name + "</middle_name>") + "<last_name>" + this.last_name + "</last_name>") + "<honorific>" + this.honorific + "</honorific>") + "<affiliation>" + this.affiliation + "</affiliation>") + "<address_line1>" + this.address_line1 + "</address_line1>") + "<address_line2>" + this.address_line2 + "</address_line2>") + "<city>" + this.city + "</city>") + "<state>" + this.state + "</state>") + "<country>" + this.country + "</country>") + "<zipcode>" + this.zipcode + "</zipcode>") + "<phone>" + this.phone + "</phone>") + "<fax>" + this.fax + "</fax>") + "<email>" + this.email + "</email>") + "<comment>" + this.comment + "</comment>") + "</person>");
         }
 
-        public static Person Load(SqlConnection conn, Guid inID)
+        public override void Load(SqlConnection conn)
         {
-            Person ret = new Person {
-                ID = inID
-            };
             SqlCommand query = new SqlCommand {
                 CommandType = CommandType.StoredProcedure,
                 CommandText = "sp_LoadPerson",
                 CommandTimeout = 60,
                 Connection = conn
             };
-            query.Parameters.Add(new SqlParameter("@inpersonid", inID));
+            query.Parameters.Add(new SqlParameter("@inpersonid", ID));
             SqlDataReader reader = query.ExecuteReader();
             while (reader.Read())
             {
@@ -47,69 +44,68 @@
                 {
                     if (!reader.IsDBNull(reader.GetOrdinal("first_name")))
                     {
-                        ret.first_name = reader["first_name"].ToString();
+                        first_name = reader["first_name"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("middle_name")))
                     {
-                        ret.middle_name = reader["middle_name"].ToString();
+                        middle_name = reader["middle_name"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("last_name")))
                     {
-                        ret.last_name = reader["last_name"].ToString();
+                        last_name = reader["last_name"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("honorific")))
                     {
-                        ret.honorific = reader["honorific"].ToString();
+                        honorific = reader["honorific"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("affiliation")))
                     {
-                        ret.affiliation = reader["affiliation"].ToString();
+                        affiliation = reader["affiliation"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("address_line1")))
                     {
-                        ret.address_line1 = reader["address_line1"].ToString();
+                        address_line1 = reader["address_line1"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("address_line2")))
                     {
-                        ret.address_line2 = reader["address_line2"].ToString();
+                        address_line2 = reader["address_line2"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("city")))
                     {
-                        ret.city = reader["city"].ToString();
+                        city = reader["city"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("state")))
                     {
-                        ret.state = reader["state"].ToString();
+                        state = reader["state"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("country")))
                     {
-                        ret.country = reader["country"].ToString();
+                        country = reader["country"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("zipcode")))
                     {
-                        ret.zipcode = reader["zipcode"].ToString();
+                        zipcode = reader["zipcode"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("phone")))
                     {
-                        ret.phone = reader["phone"].ToString();
+                        phone = reader["phone"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("fax")))
                     {
-                        ret.fax = reader["fax"].ToString();
+                        fax = reader["fax"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("email")))
                     {
-                        ret.email = reader["email"].ToString();
+                        email = reader["email"].ToString();
                     }
                     if (!reader.IsDBNull(reader.GetOrdinal("comment")))
                     {
-                        ret.comment = reader["comment"].ToString();
+                        comment = reader["comment"].ToString();
                     }
                 }
             }
             reader.Close();
-            EsmeraldaEntity.Load(conn, ret);
-            return ret;
+            base.Load(conn);
         }
 
         public static Person LoadByUsername(SqlConnection conn, string inUsername)
@@ -123,75 +119,16 @@
             };
             query.Parameters.Add(new SqlParameter("@inusername", inUsername));
             SqlDataReader reader = query.ExecuteReader();
+            Guid personid = Guid.Empty;
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("personid")))
                 {
-                    ret.ID = new Guid(reader["personid"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("first_name")))
-                    {
-                        ret.first_name = reader["first_name"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("middle_name")))
-                    {
-                        ret.middle_name = reader["middle_name"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("last_name")))
-                    {
-                        ret.last_name = reader["last_name"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("honorific")))
-                    {
-                        ret.honorific = reader["honorific"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("affiliation")))
-                    {
-                        ret.affiliation = reader["affiliation"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("address_line1")))
-                    {
-                        ret.address_line1 = reader["address_line1"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("address_line2")))
-                    {
-                        ret.address_line2 = reader["address_line2"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("city")))
-                    {
-                        ret.city = reader["city"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("state")))
-                    {
-                        ret.state = reader["state"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("country")))
-                    {
-                        ret.country = reader["country"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("zipcode")))
-                    {
-                        ret.zipcode = reader["zipcode"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("phone")))
-                    {
-                        ret.phone = reader["phone"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("fax")))
-                    {
-                        ret.fax = reader["fax"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("email")))
-                    {
-                        ret.email = reader["email"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("comment")))
-                    {
-                        ret.comment = reader["comment"].ToString();
-                    }
+                    personid = new Guid(reader["personid"].ToString());
                 }
             }
             reader.Close();
-            EsmeraldaEntity.Load(conn, ret);
+            ret.Load(conn, personid);
             return ret;
         }
 
