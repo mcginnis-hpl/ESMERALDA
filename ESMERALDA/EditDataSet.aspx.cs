@@ -26,9 +26,12 @@ namespace ESMERALDA
             DataTable data = (DataTable) base.GetSessionValue("TemporaryData");
             DataTable newtable = working.BuildDataTable(data, -1);
             SqlConnection working_connection = base.ConnectToDatabase(working.ParentProject.database_name);
+            if (string.IsNullOrEmpty(working.SQLName))
+            {
+                working.SQLName = Utils.CreateUniqueTableName(working.Name, working_connection);
+            }
             SqlTransaction tran = working_connection.BeginTransaction();
-            SqlTableCreator creator = new SqlTableCreator(working_connection, tran);
-            working.SQLName = Utils.CreateDBName(working.Name);
+            SqlTableCreator creator = new SqlTableCreator(working_connection, tran);            
             creator.DestinationTableName = working.SQLName;
             creator.Create(SqlTableCreator.GetSchemaTable(newtable));
             tran.Commit();
@@ -106,6 +109,7 @@ namespace ESMERALDA
                     {
                         f.SubfieldName = config_cols[5];
                     }
+                    f.Parent = working;
                     working.Header.Add(f);
                 }
             }
@@ -477,6 +481,14 @@ namespace ESMERALDA
                 }
             }
             this.txtKeywords.Text = keywordstring;
+            if (working.IsPublic)
+            {
+                comboMetadata_IsPublic.SelectedIndex = 0;
+            }
+            else
+            {
+                comboMetadata_IsPublic.SelectedIndex = 1;
+            }
             this.comboProject.Items.Clear();
             ListItem li = new ListItem(string.Empty, string.Empty);
             this.comboProject.Items.Add(li);
@@ -816,7 +828,10 @@ namespace ESMERALDA
                 }
                 working.Header = new List<QueryField>();
                 foreach (Field f2 in fields)
+                {
+                    f2.Parent = working;
                     working.Header.Add(f2);
+                }
             }
             if (missing_fields.Count > 0)
             {
@@ -868,6 +883,7 @@ namespace ESMERALDA
             working.Name = this.txtMetadata_Name.Text;
             working.ProcessingDescription = this.txtMetadata_Processing.Text;
             working.BriefDescription = this.txtMetadata_ShortDescription.Text;
+            working.IsPublic = bool.Parse(comboMetadata_IsPublic.SelectedValue);
             working.URL = this.txtMetadata_URL.Text;
             char[] delim = new char[] { ',' };
             working.Keywords.Clear();

@@ -211,6 +211,15 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.DropDownList comboProject;
         
         /// <summary>
+        /// comboMetadata_IsPublic control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList comboMetadata_IsPublic;
+        
+        /// <summary>
         /// datafields control.
         /// </summary>
         /// <remarks>

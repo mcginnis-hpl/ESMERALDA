@@ -24,7 +24,7 @@
             }
         }
 
-        function setActiveTab(tabname) {
+        function setActiveTab(tabname, url) {
             removeClass(document.getElementById("Welcomelink"), "current");
             removeClass(document.getElementById("Welcomeitem"), "current");
             removeClass(document.getElementById("Browselink"), "current");
@@ -32,7 +32,7 @@
             removeClass(document.getElementById("Searchlink"), "current");
             removeClass(document.getElementById("Searchitem"), "current");
 
-            setContentSource(tabname + ".aspx");
+            setContentSource(url);
             var activelinkname = tabname + "link";
             var activeitemname = tabname + "item";
             addClass(document.getElementById(activelinkname), "current");
@@ -64,10 +64,10 @@
 <div id="navcontainer">
 
 <ul id="navlist">
-<li id="Welcomeitem" class="current"><a id="Welcomelink" href="javascript:setActiveTab('Welcome')" class="current">Welcome</a></li>
-<li id="Browseitem"><a id="Browselink" href="javascript:setActiveTab('Browse')">Browse</a></li>
-<li id="Searchitem"><a id="Searchlink" href="javascript:setActiveTab('Search')">Search</a></li>
-<li id="EditPersonitem"><a id="EditPersonlink" href="javascript:setActiveTab('EditPerson')">Log In</a></li>
+<li id="Welcomeitem" class="current"><a id="Welcomelink" href="javascript:setActiveTab('Welcome', 'Welcome.aspx')" class="current">Welcome</a></li>
+<li id="Browseitem"><a id="Browselink" href="javascript:setActiveTab('Browse', 'Browse.aspx')">Browse</a></li>
+<li id="Searchitem"><a id="Searchlink" href="javascript:setActiveTab('Search', 'Search.aspx')">Search</a></li>
+<li id="EditPersonitem"><a id="EditPersonlink" href="javascript:setActiveTab('EditPerson', 'EditPerson.aspx?MODE=LOGIN')">Log In</a></li>
 </ul>
 </div>
 </div>

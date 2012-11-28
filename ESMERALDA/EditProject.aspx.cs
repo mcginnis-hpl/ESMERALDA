@@ -81,7 +81,16 @@ namespace ESMERALDA
         protected void PopulateDatabaseList(SqlConnection conn, Project inProject)
         {
             string innerHTML = string.Empty;
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT dataset_name, dataset_id, brief_description FROM dataset_metadata WHERE project_id='" + inProject.ID.ToString() + "' ORDER BY dataset_name" }.ExecuteReader();
+            string cmd = string.Empty;
+            cmd = "SELECT dataset_name, dataset_id, brief_description FROM v_dataset_metadata WHERE project_id='" + inProject.ID.ToString() + "' AND (IsPublic=1";
+            if (IsAuthenticated && CurrentUser != null)
+            {
+                cmd += " OR CreatedBy='" + CurrentUser.ID + "'";
+            }
+            cmd += ")";
+            cmd = cmd + " ORDER BY dataset_name";
+
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
             while (reader.Read())
             {
                 if (string.IsNullOrEmpty(innerHTML))
@@ -95,7 +104,9 @@ namespace ESMERALDA
             reader.Close();
             if (base.IsAuthenticated)
             {
-                this.addDatasetControl.InnerHtml = "<a href='EditDataSet.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a dataset to this project.</a>";
+                string url = "<a href='EditDataSet.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a dataset to this project.</a>";
+                url += "<br/><a href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a join to this project.</a>";
+                this.addDatasetControl.InnerHtml = url;
             }
             else
             {

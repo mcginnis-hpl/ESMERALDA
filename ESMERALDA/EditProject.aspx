@@ -26,9 +26,9 @@
             <td><asp:TextBox ID="txtMetadata_Acronym" runat="server"></asp:TextBox></td>
         </tr>
         <tr><td>Description</td><td colspan="3">
-            <asp:TextBox ID="txtMetadata_Description" runat="server"></asp:TextBox></td></tr>
+            <asp:TextBox ID="txtMetadata_Description" runat="server" Width="500px"></asp:TextBox></td></tr>
             <tr><td>URL:</td><td colspan="3">
-                <asp:TextBox ID="txtMetadata_URL" runat="server"></asp:TextBox></td></tr>
+                <asp:TextBox ID="txtMetadata_URL" runat="server" Width="500px"></asp:TextBox></td></tr>
                 <tr><td>Start Date:</td><td>
                     <cc1:DatePicker ID="controlStartDate" runat="server" AutoPostBack="true" Width="100px" PaneWidth="150px">
                         <PaneTableStyle BorderColor="#707070" BorderWidth="1px" BorderStyle="Solid" />

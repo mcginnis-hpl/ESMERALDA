@@ -99,7 +99,11 @@ namespace ESMERALDAClasses
                     and_index = working.IndexOf(" AND ");
                     or_index = working.IndexOf(" OR ");
                 }
-                ret = ret + working;
+                if (!string.IsNullOrEmpty(working))
+                {
+                    clause = working;
+                    ret += (SourceField.FormattedColumnName + clause);
+                }
             }
             else
             {
@@ -135,6 +139,14 @@ namespace ESMERALDAClasses
             get
             {
                 return SourceField.DBType;
+            }
+        }
+
+        public override string FormattedColumnName
+        {
+            get
+            {
+                return ("[" + this.Parent.ParentProject.database_name + "].[dbo].[" + ((View)this.Parent).SourceData.SQLName + "].[" + this.SQLColumnName + "]");
             }
         }
     }

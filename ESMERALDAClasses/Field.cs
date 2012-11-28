@@ -110,15 +110,7 @@
             }
             base.Save(conn);
         }
-
-        public override string FormattedColumnName
-        {
-            get
-            {
-                return ("[" + this.SQLColumnName + "]");
-            }
-        }
-
+        
         public enum FieldType
         {
             DateTime = 4,

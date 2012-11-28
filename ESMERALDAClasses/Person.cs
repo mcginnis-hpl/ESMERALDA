@@ -108,9 +108,8 @@
             base.Load(conn);
         }
 
-        public static Person LoadByUsername(SqlConnection conn, string inUsername)
+        public void LoadByUsername(SqlConnection conn, string inUsername)
         {
-            Person ret = new Person();
             SqlCommand query = new SqlCommand {
                 CommandType = CommandType.StoredProcedure,
                 CommandText = "sp_LoadPersonByUsername",
@@ -128,8 +127,7 @@
                 }
             }
             reader.Close();
-            ret.Load(conn, personid);
-            return ret;
+            Load(conn, personid);            
         }
 
         public override void Save(SqlConnection conn)

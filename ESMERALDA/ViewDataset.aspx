@@ -4,7 +4,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
-    <script src="jquery-1.4.2.min.js" type="text/javascript" language="javascript"></script>
     <script src="scripts/esmeralda.js" type="text/javascript" language="javascript"></script>
     <title>View a Dataset</title>
     <script type="text/javascript" language="javascript">
@@ -341,7 +340,7 @@
                 <div>
                     Number of Rows to Preview:
                     <asp:TextBox ID="txtRowsToRetrieve" runat="server" OnTextChanged="txtRowsToRetrieve_TextChanged"></asp:TextBox></div>
-                <asp:Table ID="tblPreviewData" runat="server">
+                <asp:Table ID="tblPreviewData" runat="server" CssClass="previewTable">
                 </asp:Table>
                 <span id="errormessage" runat="server"></span>
             </div>

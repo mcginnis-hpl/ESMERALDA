@@ -6,6 +6,10 @@ using System.Linq;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 using ESMERALDAClasses;
+using System.Net;
+using System.Text;
+using System.IO;
+using HtmlAgilityPack;
 
 namespace ESMERALDA
 {
@@ -25,23 +29,21 @@ namespace ESMERALDA
             bool has_bounds = !string.IsNullOrEmpty(bounds_string);
             char[] delim = new char[] { ' ' };
             string[] tokens = bounds_string.Split(delim);
-            query = "SELECT dataset_id, dataset_name, brief_description, dataset_description, project_id, project_name, field_name, latlon_sql_column_name, latlon_sql_table_name, latlon_metric_id, latlon_database_name, dataset_keyword, project_keyword FROM v_geospatial_search_data";
+            query = "SELECT dataset_id, dataset_name, brief_description, dataset_description, project_id, project_name, field_name, latlon_sql_column_name, latlon_sql_table_name, latlon_metric_id, latlon_database_name, dataset_keyword, project_keyword FROM v_geospatial_search_data WHERE (IsPublic=1";
+            if (IsAuthenticated && CurrentUser != null)
+            {
+                query += " OR CreatedBy='" + CurrentUser.ID + "'";
+            }
+            query += ")";
             if (has_bounds)
             {
-                query = query + " WHERE min_lat IS NOT NULL";
+                query = query + " AND (min_lat IS NOT NULL";
                 query = query + " AND ((min_lat >= " + tokens[2] + " AND min_lat <= " + tokens[0] + ") OR (" + tokens[2] + " >= min_lat AND " + tokens[2] + " <= max_lat))";
-                query = query + " AND ((min_lon >= " + tokens[3] + " AND min_lon <= " + tokens[1] + ") OR (" + tokens[3] + " >= min_lon AND " + tokens[3] + " <= max_lon))";
+                query = query + " AND ((min_lon >= " + tokens[3] + " AND min_lon <= " + tokens[1] + ") OR (" + tokens[3] + " >= min_lon AND " + tokens[3] + " <= max_lon)))";
             }
             if (fields.Count > 0)
             {
-                if (has_bounds)
-                {
-                    query = query + " AND (";
-                }
-                else
-                {
-                    query = query + " WHERE";
-                }
+                query = query + " AND (";
                 i = 0;
                 while (i < fields.Count)
                 {
@@ -59,10 +61,7 @@ namespace ESMERALDA
                     query = query + clause;
                     i++;
                 }
-                if (has_bounds)
-                {
-                    query = query + ")";
-                }
+                query = query + ")";
             }
             SqlCommand querycmd = new SqlCommand {
                 Connection = conn,
@@ -313,6 +312,205 @@ namespace ESMERALDA
                     conn.Close();
                 }
             }
+            if (!string.IsNullOrEmpty(search_string))
+            {
+                List<SearchResult> external = SearchBCODMO(search_string);
+                // List<SearchResult> external_nodc = SearchNODC(search_string);
+                tblExternalSearchResults.Rows.Clear();
+                TableHeaderRow thr = new TableHeaderRow();
+                TableHeaderCell thc = new TableHeaderCell();
+                thc.Text = "Source";
+                thr.Cells.Add(thc);
+                thc = new TableHeaderCell();
+                thc.Text = "Dataset Name";
+                thr.Cells.Add(thc);
+                thc = new TableHeaderCell();
+                thc.Text = "Dataset Description";
+                thr.Cells.Add(thc);
+                tblExternalSearchResults.Rows.Add(thr);
+                foreach (SearchResult res in external)
+                {
+                    TableRow tr = new TableRow();
+                    TableCell td = new TableCell();
+                    td.Text = res.SourceName;
+                    tr.Cells.Add(td);
+                    td = new TableCell();
+                    td.Text = "<a href='" + res.URL + "' target='_blank'>" + res.DatasetName + "</a>";
+                    tr.Cells.Add(td);
+                    td = new TableCell();
+                    td.Text = res.DatasetBriefDescription;
+                    tr.Cells.Add(td);
+                    tblExternalSearchResults.Rows.Add(tr);
+                }
+            }
+        }
+
+        protected List<SearchResult> SearchBCODMO(string searchstring)
+        {
+            List<SearchResult> ret = new List<SearchResult>();
+            WebRequest req = WebRequest.Create("http://osprey.bco-dmo.org/dataset.cfm?flag=search&sortby=name");
+            string postData = "searchFor=" + searchstring;
+
+            byte[] send = Encoding.Default.GetBytes(postData);
+            req.Method = "POST";
+            req.ContentType = "application/x-www-form-urlencoded";
+            req.ContentLength = send.Length;
+
+            Stream sout = req.GetRequestStream();
+            sout.Write(send, 0, send.Length);
+            sout.Flush();
+            sout.Close();
+
+            WebResponse res = req.GetResponse();
+            StreamReader sr = new StreamReader(res.GetResponseStream());
+            string returnvalue = sr.ReadToEnd();
+            HtmlDocument document = new HtmlDocument();
+            document.LoadHtml(returnvalue);
+            HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='entry']");
+            foreach (HtmlNode node in nodes)
+            {
+                HtmlNodeCollection table_nodes = node.SelectNodes("table");
+                if(table_nodes == null)
+                    continue;
+                if (table_nodes.Count > 0)
+                {
+                    foreach (HtmlNode table_node in table_nodes)
+                    {
+                        HtmlNodeCollection rows = table_node.SelectNodes("tr");
+                        if(rows == null)
+                            continue;
+                        foreach (HtmlNode row in rows)
+                        {
+                            HtmlNodeCollection cells = row.SelectNodes("td");
+                            if(cells == null)
+                                continue;
+                            if (cells.Count < 2)
+                                continue;
+                            HtmlNode link = cells[0].SelectSingleNode("a");
+                            if (link != null)
+                            {
+                                SearchResult r = new SearchResult();
+                                r.DatasetName = link.InnerText;
+                                r.DatasetBriefDescription = cells[1].InnerText;
+                                r.isExternal = true;
+                                r.SourceName = "BCO/DMO";
+                                foreach (HtmlAttribute attr in link.Attributes)
+                                {
+                                    if (attr.Name == "href")
+                                    {
+                                        r.URL = attr.Value;
+                                        break;
+                                    }
+                                }
+                                ret.Add(r);
+                            }
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+
+        protected List<SearchResult> SearchNODC(string searchstring)
+        {
+            List<SearchResult> ret = new List<SearchResult>();
+            WebRequest req = WebRequest.Create("http://www.nodc.noaa.gov/cgi-bin/OAS/prd/text/query");
+            string postData = "query=" + searchstring;
+
+            byte[] send = Encoding.Default.GetBytes(postData);
+            req.Method = "POST";
+            req.ContentType = "application/x-www-form-urlencoded";
+            req.ContentLength = send.Length;
+
+            Stream sout = req.GetRequestStream();
+            sout.Write(send, 0, send.Length);
+            sout.Flush();
+            sout.Close();
+
+            WebResponse res = req.GetResponse();
+            StreamReader sr = new StreamReader(res.GetResponseStream());
+            string returnvalue = sr.ReadToEnd();
+            HtmlDocument document = new HtmlDocument();
+            document.LoadHtml(returnvalue);
+            HtmlNodeCollection forms = document.DocumentNode.SelectNodes("//form");
+            string fetch_url = string.Empty;
+            foreach (HtmlNode form in forms)
+            {
+                foreach (HtmlAttribute attr in form.Attributes)
+                {
+                    if (attr.Name == "action" && attr.Value.IndexOf("query/response") > 0)
+                    {
+                        fetch_url = "http://www.nodc.noaa.gov" + attr.Value;
+                        break;
+                    }
+                }
+            }
+            if (string.IsNullOrEmpty(fetch_url))
+            {
+                return ret;
+            }
+
+            req = WebRequest.Create(fetch_url);
+            postData = "query=" + searchstring;
+
+            send = Encoding.Default.GetBytes(postData);
+            req.Method = "POST";
+            req.ContentType = "application/x-www-form-urlencoded";            
+            req.ContentLength = send.Length;
+
+            sout = req.GetRequestStream();
+            sout.Write(send, 0, send.Length);
+            sout.Flush();
+            sout.Close();
+
+            res = req.GetResponse();
+            sr = new StreamReader(res.GetResponseStream());
+            returnvalue = sr.ReadToEnd();
+            document = new HtmlDocument();
+            document.LoadHtml(returnvalue);
+            HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='entry']");
+            foreach (HtmlNode node in nodes)
+            {
+                HtmlNodeCollection table_nodes = node.SelectNodes("table");
+                if (table_nodes == null)
+                    continue;
+                if (table_nodes.Count > 0)
+                {
+                    foreach (HtmlNode table_node in table_nodes)
+                    {
+                        HtmlNodeCollection rows = table_node.SelectNodes("tr");
+                        if (rows == null)
+                            continue;
+                        foreach (HtmlNode row in rows)
+                        {
+                            HtmlNodeCollection cells = row.SelectNodes("td");
+                            if (cells == null)
+                                continue;
+                            if (cells.Count < 2)
+                                continue;
+                            HtmlNode link = cells[0].SelectSingleNode("a");
+                            if (link != null)
+                            {
+                                SearchResult r = new SearchResult();
+                                r.DatasetName = link.InnerText;
+                                r.DatasetBriefDescription = cells[1].InnerText;
+                                r.isExternal = true;
+                                r.SourceName = "BCO/DMO";
+                                foreach (HtmlAttribute attr in link.Attributes)
+                                {
+                                    if (attr.Name == "href")
+                                    {
+                                        r.URL = attr.Value;
+                                        break;
+                                    }
+                                }
+                                ret.Add(r);
+                            }
+                        }
+                    }
+                }
+            }
+            return ret;
         }
 
         protected List<string> GetSearchFieldList(SqlConnection conn)

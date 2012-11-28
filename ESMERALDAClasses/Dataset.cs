@@ -159,6 +159,7 @@ namespace ESMERALDAClasses
                         newfield.SQLColumnName = reader["sql_column_name"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("subfield_id")))
                         newfield.SubfieldID = new Guid(reader["subfield_id"].ToString());
+                    newfield.Parent = this;
                     Header.Add(newfield);
                 }
             }

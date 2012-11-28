@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Search.aspx.cs" Inherits="ESMERALDA.Search" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Search.aspx.cs" Inherits="ESMERALDA.Search" ValidateRequest="false" %>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -74,29 +74,31 @@
                 bermudaTriangle.setMap(map);
             }
             var datasets = document.getElementById("mapdatasets").value;
-            var setlines = datasets.split("|");
-            var i = 0;
-            for (i = 0; i < setlines.length; i++) {
-                var tokens = setlines[i].split("~");
-                var subtokens = tokens[3].split(";");
-                var j = 0;
-                var latLngBound = new Array();
-                for (j = 0; j < subtokens.length; j++) {
-                    var subsubtokens = subtokens[j].split(",");
-                    latLngBound.push(new google.maps.LatLng(subsubtokens[0], subsubtokens[1]));
+            if (datasets.length > 0) {
+                var setlines = datasets.split("|");
+                var i = 0;
+                for (i = 0; i < setlines.length; i++) {
+                    var tokens = setlines[i].split("~");
+                    var subtokens = tokens[3].split(";");
+                    var j = 0;
+                    var latLngBound = new Array();
+                    for (j = 0; j < subtokens.length; j++) {
+                        var subsubtokens = subtokens[j].split(",");
+                        latLngBound.push(new google.maps.LatLng(subsubtokens[0], subsubtokens[1]));
+                    }
+                    // Construct the polygon
+                    shapes.push(new google.maps.Polygon({
+                        paths: latLngBound,
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillOpacity: 0.35,
+                        strokeColor: tokens[0],
+                        fillColor: tokens[0],
+                        clickable: true
+                    }));
+                    shapes[i].setMap(map);
+                    attachInfoWindow(shapes[i], tokens[1], latLngBound[0], tokens[2]);
                 }
-                // Construct the polygon
-                shapes.push(new google.maps.Polygon({
-                    paths: latLngBound,
-                    strokeOpacity: 0.8,
-                    strokeWeight: 2,
-                    fillOpacity: 0.35,
-                    strokeColor: tokens[0],
-                    fillColor: tokens[0],
-                    clickable: true
-                }));
-                shapes[i].setMap(map);
-                attachInfoWindow(shapes[i], tokens[1], latLngBound[0], tokens[2]);
             }
             google.maps.event.addListener(drawingManager, 'overlaycomplete', executeShape);
         }
@@ -139,7 +141,7 @@
                     Search for datasets by keyword (searches metadata and field names):</p>
                 Enter your keywords:
                 <asp:TextBox ID="txtSearchByKeyword" runat="server" Width="469px"></asp:TextBox>
-                <asp:LinkButton ID="btnSearchByKeyword" runat="server" OnClick="btnSearchByKeyword_Click">Search</asp:LinkButton>
+                <asp:LinkButton ID="btnSearchByKeyword" runat="server">Search</asp:LinkButton>
                 <asp:Table ID="tblSearchByKeywordResults" runat="server">
                 </asp:Table>
             </div>
@@ -152,6 +154,12 @@
                 <asp:HiddenField ID="searchCoords" runat="server" />
                 <asp:HiddenField ID="mapCenter" runat="server" />
                 <asp:HiddenField ID="mapZoom" runat="server" />
+            </div>
+            <div id="externalSearchResults">
+            <h3>
+                    Results from Other Sites</h3>
+                <asp:Table ID="tblExternalSearchResults" runat="server">
+                </asp:Table>
             </div>
         </div>
     </div>

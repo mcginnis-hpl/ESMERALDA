@@ -35,6 +35,9 @@
     <Reference Include="AjaxControlToolkit">
       <HintPath>..\..\AjaxControlToolkit\AjaxControlToolkit.dll</HintPath>
     </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\..\HTMLAgilityPack\Net40\HtmlAgilityPack.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -60,9 +63,11 @@
     <Content Include="Default.aspx" />
     <Content Include="DownloadViewasCSV.aspx" />
     <Content Include="EditDataSet.aspx" />
+    <Content Include="EditJoin.aspx" />
     <Content Include="EditPerson.aspx" />
     <Content Include="EditProgram.aspx" />
     <Content Include="EditProject.aspx" />
+    <Content Include="GetEntityList.aspx" />
     <Content Include="GuidGenerator.aspx" />
     <Content Include="img\header_bg.gif" />
     <Content Include="img\loading.gif" />
@@ -122,6 +127,13 @@
     <Compile Include="EditDataSet.aspx.designer.cs">
       <DependentUpon>EditDataSet.aspx</DependentUpon>
     </Compile>
+    <Compile Include="EditJoin.aspx.cs">
+      <DependentUpon>EditJoin.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="EditJoin.aspx.designer.cs">
+      <DependentUpon>EditJoin.aspx</DependentUpon>
+    </Compile>
     <Compile Include="EditPerson.aspx.cs">
       <DependentUpon>EditPerson.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -145,6 +157,13 @@
     </Compile>
     <Compile Include="ESMERALDAPage.cs">
       <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="GetEntityList.aspx.cs">
+      <DependentUpon>GetEntityList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="GetEntityList.aspx.designer.cs">
+      <DependentUpon>GetEntityList.aspx</DependentUpon>
     </Compile>
     <Compile Include="GuidGenerator.aspx.cs">
       <DependentUpon>GuidGenerator.aspx</DependentUpon>

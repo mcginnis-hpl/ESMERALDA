@@ -14,6 +14,7 @@ namespace ESMERALDAClasses
         protected Field.FieldType m_DBType;
         protected Metric m_FieldMetric;
         public Field_Metadata Metadata;
+        public QuerySet Parent;
 
         public virtual Metric FieldMetric
         {
@@ -30,7 +31,7 @@ namespace ESMERALDAClasses
         {
             get
             {
-                return string.Empty;
+                return ("[" + this.Parent.ParentProject.database_name + "].[dbo].[" + this.Parent.SQLName + "].[" + this.SQLColumnName + "]");
             }
         }
         public virtual Field.FieldType DBType
@@ -59,6 +60,7 @@ namespace ESMERALDAClasses
             m_FieldMetric = null;
             m_DBType = Field.FieldType.None;
             Metadata = new Field_Metadata();
+            Parent = null;
         }
 
     }
@@ -90,8 +92,6 @@ namespace ESMERALDAClasses
         public QuerySet SourceData;
         public string Description;
         public string BriefDescription;
-        public Person CreatedBy;
-        public DateTime CreatedOn;
         public string SQLQuery;
 
         public View(QuerySet inData)
@@ -101,10 +101,9 @@ namespace ESMERALDAClasses
             Name = string.Empty;
             Description = string.Empty;
             BriefDescription = string.Empty;
-            CreatedBy = null;
-            CreatedOn = DateTime.MinValue;
             ID = Guid.NewGuid();
             SQLQuery = string.Empty;
+            ParentProject = inData.ParentProject;
         }
 
         public View()
@@ -114,8 +113,6 @@ namespace ESMERALDAClasses
             Name = string.Empty;
             Description = string.Empty;
             BriefDescription = string.Empty;
-            CreatedBy = null;
-            CreatedOn = DateTime.MinValue;
             ID = Guid.NewGuid();
             SQLQuery = string.Empty;
         }
@@ -126,40 +123,38 @@ namespace ESMERALDAClasses
             ret += "<view_name>" + Name + "</view_name>";
             ret += "<brief_description>" + BriefDescription + "</brief_description>";
             ret += "<description>" + Description + "</description>";
-            ret += "<created_on>" + CreatedOn.ToShortDateString() + "</created_on>";
-            if (CreatedBy != null)
+            ret += "<created_on>" + Timestamp.ToShortDateString() + "</created_on>";
+            if (Owner != null)
             {
-                ret += "<createdby>" + CreatedBy.GetMetadata() + "</createdby>";
+                ret += "<createdby>" + Owner.GetMetadata() + "</createdby>";
             }
-            if (SourceData != null)
+            if (ParentProject != null)
             {
-                if (SourceData.ParentProject != null)
+                if (ParentProject.parentProgram != null)
                 {
-                    if (SourceData.ParentProject.parentProgram != null)
-                    {
-                        ret += "<parent_program>" + SourceData.ParentProject.parentProgram.GetMetadata() + "</parent_program>";
-                    }
-                    ret += "<parent_project>" + SourceData.ParentProject.GetMetadata() + "</parent_project>";
+                    ret += "<parent_program>" + ParentProject.parentProgram.GetMetadata() + "</parent_program>";
                 }
+                ret += "<parent_project>" + ParentProject.GetMetadata() + "</parent_project>";
                 ret += "<dataset>" + SourceData.GetMetadata() + "</dataset>";
             }
             ret += "</data_view>";
             return ret;
         }
 
-        public void AutopopulateConditions()
+        public virtual void AutopopulateConditions()
         {
             foreach (QueryField f in SourceData.Header)
             {
                 if (!f.IsSubfield)
                 {
                     ViewCondition cond = new ViewCondition(f, ViewCondition.ConditionType.None, this);
+                    cond.Parent = this;
                     Header.Add(cond);
                 }
             }
         }
 
-        public string GetQuery(int numrows)
+        public virtual string GetQuery(int numrows, QuerySet source_set)
         {
             string ret = string.Empty;
             if (!string.IsNullOrEmpty(SQLQuery))
@@ -187,7 +182,7 @@ namespace ESMERALDAClasses
                     if (vc.Type == ViewCondition.ConditionType.Formula)
                     {
                         string formula_text = vc.Condition;
-                        foreach (QueryField f in SourceData.Header)
+                        foreach (QueryField f in source_set.Header)
                         {
                             if (formula_text.IndexOf("[" + f.Name + "]") >= 0)
                             {
@@ -206,7 +201,7 @@ namespace ESMERALDAClasses
                     }
                     else
                     {
-                        ret += vc.BuildClause();
+                        ret += " " + vc.FormattedColumnName + " AS " + vc.SQLColumnName;
                     }
                 }
             }
@@ -214,7 +209,7 @@ namespace ESMERALDAClasses
             {
                 return string.Empty;
             }
-            ret += " FROM [" + SourceData.SQLName + "]";
+            ret += " FROM [" + source_set.SQLName + "]";
             init = false;
             for (int i = 0; i < Header.Count; i++)
             {
@@ -229,7 +224,7 @@ namespace ESMERALDAClasses
                         ret += " WHERE";
                         init = true;
                     }
-                    ret += " (" + ((ViewCondition)Header[i]).SourceField.FormattedColumnName + " " + ((ViewCondition)Header[i]).Condition + ")";
+                    ret += " (" + ((ViewCondition)Header[i]).BuildClause() + ")";
                 }
             }
             init = false;
@@ -265,6 +260,11 @@ namespace ESMERALDAClasses
             return ret;
         }
 
+        public virtual string GetQuery(int numrows)
+        {
+            return GetQuery(numrows, SourceData);
+        }
+
         protected void CreateSQLView(SqlConnection conn)
         {
             SqlCommand query = new SqlCommand();
@@ -288,6 +288,7 @@ namespace ESMERALDAClasses
         {
             SqlCommand query = null;
             string dbname = SourceData.ParentProject.database_name;
+            SqlConnection dataconn = Utils.ConnectToDatabase(dbname);            
             string query_string = GetQuery(-1);
             if (!string.IsNullOrEmpty(query_string))
             {
@@ -326,18 +327,15 @@ namespace ESMERALDAClasses
             query.Parameters.Add(new SqlParameter("@indataset_id", SourceData.ID));
             query.Parameters.Add(new SqlParameter("@inview_name", Name));
             if (string.IsNullOrEmpty(SQLName))
-                SQLName = Utils.CreateDBName(Name);
+            {
+                SQLName = Utils.CreateUniqueTableName(Name, dataconn);
+            }
             query.Parameters.Add(new SqlParameter("@inview_sqlname", SQLName));
             query.Parameters.Add(new SqlParameter("@indescription", Description));
             query.Parameters.Add(new SqlParameter("@inbrief_description", BriefDescription));
-            if (CreatedOn == DateTime.MinValue)
-                CreatedOn = DateTime.Now;
-            query.Parameters.Add(new SqlParameter("@increatedon", CreatedOn));
-            if (CreatedBy != null)
-            {
-                query.Parameters.Add(new SqlParameter("@increatedby", CreatedBy.ID));
-            }
             query.Parameters.Add(new SqlParameter("@query", SQLQuery));
+            if(ParentProject != null)
+                query.Parameters.Add(new SqlParameter("@inproject_id", ParentProject.ID));
             query.ExecuteNonQuery();
 
             foreach (ViewCondition v in Header)
@@ -346,8 +344,7 @@ namespace ESMERALDAClasses
                     v.Owner = Owner;
                 v.Save(conn, ID);
             }
-            base.Save(conn);            
-            SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
+            base.Save(conn);                        
             CreateSQLView(dataconn);
             dataconn.Close();
         }
@@ -382,14 +379,12 @@ namespace ESMERALDAClasses
                         view_description = reader["description"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("brief_description")))
                         view_briefdescription = reader["brief_description"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("createdon")))
-                        view_createdon = DateTime.Parse(reader["createdon"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("createdby")))
-                        enteredbyid = new Guid(reader["createdby"].ToString());
                     if (!reader.IsDBNull(reader.GetOrdinal("view_sqlname")))
                         view_sqlname = reader["view_sqlname"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("query")))
                         view_query = reader["query"].ToString();
+                    if (!reader.IsDBNull(reader.GetOrdinal("project_id")))
+                        projectid = new Guid(reader["project_id"].ToString());
                 }
             }
             reader.Close();
@@ -407,15 +402,18 @@ namespace ESMERALDAClasses
                 source.Load(conn, sourceid, globalConversions, metrics);
             }
 
-            View ret = new View(source);
-            ret.ID = viewID;
-            ret.Name = view_name;
-            ret.BriefDescription = view_briefdescription;
-            ret.Description = view_description;
-            ret.CreatedOn = view_createdon;
-            ret.SQLName = view_sqlname;
-            ret.SQLQuery = view_query;
-
+            ID = viewID;
+            Name = view_name;
+            BriefDescription = view_briefdescription;
+            Description = view_description;
+            SQLName = view_sqlname;
+            SQLQuery = view_query;
+            if (projectid != Guid.Empty)
+            {
+                ParentProject = new Project();
+                ParentProject.ID = projectid;
+                ParentProject.Load(conn);
+            }
             query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
             query.CommandText = "sp_LoadViewConditions";
@@ -442,7 +440,7 @@ namespace ESMERALDAClasses
                     }
                     if (sourceField == null)
                         continue;
-                    ViewCondition con = new ViewCondition(sourceField, (ViewCondition.ConditionType)field_type, ret);
+                    ViewCondition con = new ViewCondition(sourceField, (ViewCondition.ConditionType)field_type, this);
                     con.ID = new Guid(reader["condition_id"].ToString());
                     con.Condition = reader["condition_text"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("condition_conversion")))
@@ -458,6 +456,7 @@ namespace ESMERALDAClasses
                     }
                     con.SQLColumnName = reader["sql_name"].ToString();
                     con.Load(conn);
+                    con.Parent = this;
                     Header.Add(con);
                 }
             }

@@ -14,6 +14,7 @@ namespace ESMERALDA
             ESMERALDAClasses.View view = (ESMERALDAClasses.View)base.GetSessionValue("WorkingView");
             this.ParseValueString(this.viewValues.Value, view);
             ViewCondition cond = new ViewCondition(null, ViewCondition.ConditionType.None, view);
+            cond.Parent = view;
             view.Header.Add(cond);
             base.SetSessionValue("WorkingView", view);
             this.PopulateData(view);
@@ -111,8 +112,10 @@ namespace ESMERALDA
                 SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (viewid != Guid.Empty)
                 {
-                    view = new ESMERALDAClasses.View();
-                    view.Load(conn, viewid, base.Conversions, base.Metrics);
+                    ESMERALDAClasses.View sourceview = new ESMERALDAClasses.View();
+                    sourceview.Load(conn, viewid, base.Conversions, base.Metrics);
+                    view = new ESMERALDAClasses.View(sourceview);
+                    view.AutopopulateConditions();
                 }
                 else
                 {
@@ -578,7 +581,15 @@ namespace ESMERALDA
                 this.tblPreviewData.Rows.Add(thr);
                 if (!string.IsNullOrEmpty(cmd))
                 {
-                    reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
+                    try
+                    {
+                        reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
+                    }
+                    catch (Exception ex)
+                    {
+                        this.errormessage.InnerHtml = "<strong>" + ex.Message + ":</strong> " + ex.StackTrace;
+                        return;
+                    }
                     while (reader.Read())
                     {
                         tr = new TableRow();

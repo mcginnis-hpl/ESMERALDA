@@ -45,6 +45,7 @@
     <Compile Include="EsmeraldaEntity.cs" />
     <Compile Include="Field.cs" />
     <Compile Include="Field_Metadata.cs" />
+    <Compile Include="Join.cs" />
     <Compile Include="Metric.cs" />
     <Compile Include="Ordered!1.cs" />
     <Compile Include="Person.cs" />

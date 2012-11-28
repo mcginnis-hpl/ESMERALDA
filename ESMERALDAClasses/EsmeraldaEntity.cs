@@ -11,10 +11,12 @@
         public List<string> Keywords = new List<string>();
         public Person Owner = null;
         public DateTime Timestamp = DateTime.MinValue;
+        public bool IsPublic = true;
 
         public virtual void Load(SqlConnection conn, Guid inID)
         {
             ID = inID;
+            IsPublic = true;
             Load(conn);
         }
 
@@ -45,10 +47,14 @@
                     {
                         Timestamp = DateTime.Parse(reader["CreatedOn"].ToString());
                     }
+                    if (!reader.IsDBNull(reader.GetOrdinal("IsPublic")))
+                    {
+                        IsPublic = bool.Parse(reader["IsPublic"].ToString());
+                    }
                 }
             }
             reader.Close();
-            if (ownerid != Guid.Empty)
+            if (ownerid != Guid.Empty && ownerid != ID)
             {
                 Owner = new Person();
                 Owner.Load(conn, ownerid);
@@ -61,27 +67,32 @@
             {
                 this.Timestamp = DateTime.Now;
             }
-            SqlCommand query = new SqlCommand();
-            string cmd = ("DELETE FROM entity_keywords WHERE EntityID='" + this.ID.ToString() + "';") + "DELETE FROM entity_data WHERE EntityID='" + this.ID.ToString() + "';";
+            SqlCommand query = new SqlCommand();            
+            query.CommandType = CommandType.StoredProcedure;
+            query.Parameters.Add(new SqlParameter("@inEntityID", ID));
+            if(this.Owner != null)
+                query.Parameters.Add(new SqlParameter("@inCreatedBy", Owner.ID));
+            query.Parameters.Add(new SqlParameter("@inCreatedOn", this.Timestamp));
+            query.Parameters.Add(new SqlParameter("@inIsPublic", IsPublic));
+            query.CommandText = "sp_WriteEsmeraldaEntity";
+            query.Connection = conn;
+            query.CommandTimeout = 60;
+            query.ExecuteNonQuery();
+
+            string cmd = string.Empty;
             foreach (string s in this.Keywords)
             {
                 cmd = cmd + "INSERT INTO entity_keywords (EntityID, Keyword) VALUES ('" + this.ID.ToString() + "', '" + s + "');";
             }
-            cmd = cmd + "INSERT INTO entity_data (EntityID, CreatedBy, CreatedOn) VALUES ('" + this.ID.ToString() + "'";
-            if (this.Owner != null)
+            if (!string.IsNullOrEmpty(cmd))
             {
-                cmd = cmd + ", '" + this.Owner.ID.ToString() + "'";
+                query = new SqlCommand();
+                query.CommandText = cmd;
+                query.Connection = conn;
+                query.CommandTimeout = 60;
+                query.CommandType = CommandType.Text;
+                query.ExecuteNonQuery();
             }
-            else
-            {
-                cmd = cmd + ", NULL";
-            }
-            cmd = cmd + ", '" + this.Timestamp.ToString() + "')";
-            query.CommandType = CommandType.Text;
-            query.CommandText = cmd;
-            query.Connection = conn;
-            query.CommandTimeout = 60;
-            query.ExecuteNonQuery();
         }
     }
 }

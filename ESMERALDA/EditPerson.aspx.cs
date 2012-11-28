@@ -37,24 +37,22 @@ namespace ESMERALDA
             }
             else
             {
-                Person inperson = new Person
-                {
-                    first_name = this.txtFirstName.Text,
-                    middle_name = this.txtMiddleName.Text,
-                    last_name = this.txtLastName.Text,
-                    address_line1 = this.txtAddress1.Text,
-                    address_line2 = this.txtAddress2.Text,
-                    affiliation = this.txtAffiliation.Text,
-                    city = this.txtCity.Text,
-                    comment = this.txtComments.Text,
-                    country = this.txtCountry.Text,
-                    email = this.txtEmail.Text,
-                    fax = this.txtFax.Text,
-                    honorific = this.txtHonorific.Text,
-                    phone = this.txtPhone.Text,
-                    state = this.txtState.Text,
-                    zipcode = this.txtZIP.Text
-                };
+                Person inperson = (Person)GetSessionValue("WorkingPerson");
+                inperson.first_name = this.txtFirstName.Text;
+                inperson.middle_name = this.txtMiddleName.Text;
+                inperson.last_name = this.txtLastName.Text;
+                inperson.address_line1 = this.txtAddress1.Text;
+                inperson.address_line2 = this.txtAddress2.Text;
+                inperson.affiliation = this.txtAffiliation.Text;
+                inperson.city = this.txtCity.Text;
+                inperson.comment = this.txtComments.Text;
+                inperson.country = this.txtCountry.Text;
+                inperson.email = this.txtEmail.Text;
+                inperson.fax = this.txtFax.Text;
+                inperson.honorific = this.txtHonorific.Text;
+                inperson.phone = this.txtPhone.Text;
+                inperson.state = this.txtState.Text;
+                inperson.zipcode = this.txtZIP.Text;
                 if (!string.IsNullOrEmpty(this.lblUserID.Text))
                 {
                     inperson.ID = new Guid(this.lblUserID.Text);
@@ -97,6 +95,7 @@ namespace ESMERALDA
 
         protected void Login()
         {
+            Person p = (Person)GetSessionValue("WorkingPerson");
             bool passwordMatch = false;
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             SqlCommand cmd = new SqlCommand("LookupUser", conn)
@@ -128,7 +127,7 @@ namespace ESMERALDA
                     }
                     ck.Path = FormsAuthentication.FormsCookiePath;
                     base.Response.Cookies.Add(ck);
-                    Person p = Person.LoadByUsername(conn, this.txtUsername.Text);
+                    p.LoadByUsername(conn, this.txtUsername.Text);
                     if (p != null)
                     {
                         this.PopulateData(p, conn);
@@ -136,6 +135,7 @@ namespace ESMERALDA
                     base.CurrentUser = p;
                     this.login.Visible = false;
                     base.ShowAlert("Login successful!");
+                    PopulateData(p, conn);
                 }
                 else
                 {
@@ -154,8 +154,9 @@ namespace ESMERALDA
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            bool isLogin = false;            
             string username = string.Empty;
-            Guid userid = Guid.Empty;
+            Guid userid = Guid.Empty;    
             for (int i = 0; i < base.Request.Params.Count; i++)
             {
                 if (base.Request.Params.GetKey(i).ToUpper() == "USERNAME")
@@ -166,27 +167,45 @@ namespace ESMERALDA
                 {
                     userid = new Guid(base.Request.Params[i]);
                 }
+                else if (base.Request.Params.GetKey(i).ToUpper() == "MODE")
+                {
+                    if (base.Request.Params[i].ToUpper() == "LOGIN")
+                    {
+                        isLogin = true;
+                    }
+                }
             }
-            if (!base.IsAuthenticated)
+            if(username == string.Empty && userid == Guid.Empty)
+            {
+                username = Username;
+            }
+            if (isLogin && !base.IsAuthenticated)
             {
                 this.login.Visible = true;
             }
             else
             {
                 this.login.Visible = false;
-                if (string.IsNullOrEmpty(username))
-                {
-                    username = base.Username;
+            }
+            if (!IsPostBack)
+            {
+                RemoveSessionValue("WorkingPerson");                            
+                Person p = new Person();
+                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");                
+                if (!string.IsNullOrEmpty(username) || userid != Guid.Empty)
+                {                        
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        p.LoadByUsername(conn, username);
+                    }
+                    else
+                    {
+                        p.Load(conn, userid);
+                    }                        
                 }
-                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-                Person p = Person.LoadByUsername(conn, username);
-                if (p != null)
-                {
-                    this.PopulateData(p, conn);
-                }
-                base.CurrentUser = p;
+                this.PopulateData(p, conn);
                 conn.Close();
-                this.SetControlEnables(base.IsAuthenticated);
+                SetSessionValue("WorkingPerson", p);
             }
         }
 
@@ -247,9 +266,10 @@ namespace ESMERALDA
                 this.txtState.ReadOnly = false;
                 this.txtZIP.ReadOnly = false;
             }
-            else
+            else if(IsAuthenticated)
             {
-                this.txtEmail.ReadOnly = false;
+                this.txtPasswordNew.Enabled = false;
+                this.txtPasswordConfirm.Enabled = false;
                 this.txtFirstName.ReadOnly = false;
                 this.txtMiddleName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
@@ -264,34 +284,31 @@ namespace ESMERALDA
                 this.txtPhone.ReadOnly = false;
                 this.txtState.ReadOnly = false;
                 this.txtZIP.ReadOnly = false;
+            }
+            else
+            {
                 this.txtPasswordNew.Enabled = false;
                 this.txtPasswordConfirm.Enabled = false;
+                this.txtEmail.ReadOnly = true;
+                this.txtFirstName.ReadOnly = true;
+                this.txtMiddleName.ReadOnly = true;
+                this.txtLastName.ReadOnly = true;
+                this.txtAddress1.ReadOnly = true;
+                this.txtAddress2.ReadOnly = true;
+                this.txtAffiliation.ReadOnly = true;
+                this.txtCity.ReadOnly = true;
+                this.txtComments.ReadOnly = true;
+                this.txtCountry.ReadOnly = true;
+                this.txtFax.ReadOnly = true;
+                this.txtHonorific.ReadOnly = true;
+                this.txtPhone.ReadOnly = true;
+                this.txtState.ReadOnly = true;
+                this.txtZIP.ReadOnly = true;
+                this.txtPasswordNew.Enabled = true;
+                this.txtPasswordConfirm.Enabled = true;
             }
         }
-
-        protected void SetControlEnables(bool inEnabled)
-        {
-            this.txtEmail.ReadOnly = !inEnabled;
-            this.txtPasswordNew.ReadOnly = !inEnabled;
-            this.txtAddress1.ReadOnly = !inEnabled;
-            this.txtAddress2.ReadOnly = !inEnabled;
-            this.txtAffiliation.ReadOnly = !inEnabled;
-            this.txtCity.ReadOnly = !inEnabled;
-            this.txtComments.ReadOnly = !inEnabled;
-            this.txtCountry.ReadOnly = !inEnabled;
-            this.txtFax.ReadOnly = !inEnabled;
-            this.txtFirstName.ReadOnly = !inEnabled;
-            this.txtHonorific.ReadOnly = !inEnabled;
-            this.txtLastName.ReadOnly = !inEnabled;
-            this.txtMiddleName.ReadOnly = !inEnabled;
-            this.txtPasswordConfirm.ReadOnly = !inEnabled;
-            this.txtPasswordNew.ReadOnly = !inEnabled;
-            this.txtPhone.ReadOnly = !inEnabled;
-            this.txtState.ReadOnly = !inEnabled;
-            this.txtZIP.ReadOnly = !inEnabled;
-            this.btnSave.Enabled = inEnabled;
-        }
-
+        
         protected void txtPassword_TextChanged(object sender, EventArgs e)
         {
             this.Login();

@@ -262,3 +262,9 @@ A:hover {
   line-height: 18px;
   color: #333333;
 }
+
+.previewTable td,th
+{
+  font-family: verdana, arial, sans-serif;
+  font-size: 10px;    
+}

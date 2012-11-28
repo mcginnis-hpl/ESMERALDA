@@ -64,10 +64,44 @@
             return ret.ToLocalTime().AddDays(intime);
         }
 
+        public static string CreateUniqueTableName(string inField, SqlConnection conn)
+        {
+            string prefix = CreateDBName(inField);
+            int offset = 0;
+            string ret = prefix;
+            while (SqlTableCreator.TableExists(ret, conn, null))
+            {
+                ret = prefix + "_" + offset.ToString();
+                offset += 1;
+            }
+            return ret;
+        }
+
         public static string CreateDBName(string inField)
         {
             Regex rgx = new Regex("[^a-zA-Z0-9 -]");
             return rgx.Replace(inField, "").Replace(" ", "_").Replace("-", "_");
+        }
+
+        public static bool DBExists(string inName, SqlConnection conn)
+        {
+            bool ret = false;
+            string query_cmd = "SELECT DB_ID(N'" + inName + "');";
+            SqlCommand query = new SqlCommand
+            {
+                Connection = conn,
+                CommandType = CommandType.Text,
+                CommandText = query_cmd,
+                CommandTimeout = 60
+            };
+            SqlDataReader reader = query.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(0))
+                    ret = true;
+            }
+            reader.Close();
+            return ret;
         }
 
         public static string MapFieldType(Field.FieldType inType)
@@ -157,7 +191,7 @@
                 reader = query.ExecuteReader();
                 while (reader.Read())
                 {
-                    if (!reader.IsDBNull(reader.GetOrdinal("view_id")))
+                    if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
                     {
                         ret = "DATASET";
                     }

@@ -20,6 +20,9 @@
         public Guid ProjectID = Guid.Empty;
         public string ProjectName = string.Empty;
         public int Score = 0;
+        public string URL = string.Empty;
+        public bool isExternal = false;
+        public string SourceName = string.Empty;
     }
 }
 

@@ -85,6 +85,7 @@ namespace ESMERALDA
             this.txtRowObservation.Text = string.Empty;
             f.Metadata.processing_methodology = this.txtRowProcessing.Text;
             this.txtRowProcessing.Text = string.Empty;
+            f.Parent = working;
             if (edit_row >= 0)
             {
                 working.Header[edit_row] = f;

@@ -18,7 +18,15 @@
 
         protected void CreateDatabase(SqlConnection meta_conn)
         {
-            this.database_name = Utils.CreateDBName(this.program_name);
+            string prefix = Utils.CreateDBName(this.program_name);
+            this.database_name = prefix;
+            int offset = 0;
+            while (Utils.DBExists(database_name, meta_conn))
+            {
+                this.database_name = prefix + "_" + offset.ToString();
+                offset += 1;
+            }
+
             string ServerName = string.Empty;
             char[] delim1 = new char[] { ';' };
             char[] delim2 = new char[] { '=' };

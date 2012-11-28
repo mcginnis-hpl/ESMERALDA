@@ -85,7 +85,7 @@
             if (programid != Guid.Empty)
             {
                 parentProgram = new Program();
-                parentProgram.Load(conn);
+                parentProgram.Load(conn, programid);
             }
             base.Load(conn);
         }

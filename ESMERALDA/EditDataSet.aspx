@@ -6,7 +6,7 @@
 <head id="Head1" runat="server">
     <title>Upload a File</title>
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
-    <script src="jquery-1.4.2.min.js" type="text/javascript" language="javascript"></script>
+    <script src="scripts/jquery-1.4.1.min.js" type="text/javascript" language="javascript"></script>
     <script src="scripts/esmeralda.js" type="text/javascript" language="javascript"></script>
     <script type="text/javascript" language="javascript">
         var newMetricColumn;
@@ -550,7 +550,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    Keywords:
+                                    Keywords (comma-separated):
                                 </td>
                                 <td colspan="3">
                                     <asp:TextBox ID="txtKeywords" runat="server" Width="387px"></asp:TextBox>
@@ -569,6 +569,21 @@
                                 <td>
                                     <asp:DropDownList ID="comboProject" runat="server">
                                     </asp:DropDownList>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Dataset is Public:
+                                </td>
+                                <td>
+                                    <asp:DropDownList ID="comboMetadata_IsPublic" runat="server">
+                                        <asp:ListItem Text="Yes" Value="true"></asp:ListItem>
+                                        <asp:ListItem Text="No" Value="false"></asp:ListItem>
+                                    </asp:DropDownList>
+                                </td>
+                                <td>
+                                </td>
+                                <td>                                    
                                 </td>
                             </tr>
                         </table>

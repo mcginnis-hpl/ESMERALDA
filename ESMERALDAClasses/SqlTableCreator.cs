@@ -216,6 +216,7 @@
                     return "INT";
 
                 case "System.DateTime":
+                case "System.TimeSpan":
                     return "DATETIME";
 
                 case "System.Boolean":

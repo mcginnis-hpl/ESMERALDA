@@ -138,7 +138,25 @@ namespace ESMERALDA
         {
             get
             {
-                return (Person)this.GetSessionValue("CurrentUser");
+                if (!IsAuthenticated)
+                    return null;
+                Person ret = (Person)this.GetSessionValue("CurrentUser");
+                if (ret == null)
+                {
+                    if (!string.IsNullOrEmpty(Username))
+                    {
+                        Person p = new Person();
+                        SqlConnection conn = ConnectToConfigString("RepositoryConnection");
+                        p.LoadByUsername(conn, Username);
+                        conn.Close();
+                        if (p != null)
+                        {
+                            ret = p;
+                            SetSessionValue("CurrentUser", p);
+                        }
+                    }
+                }
+                return ret;
             }
             set
             {
