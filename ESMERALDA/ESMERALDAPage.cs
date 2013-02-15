@@ -122,6 +122,16 @@ namespace ESMERALDA
             base.ClientScript.RegisterStartupScript(base.GetType(), "MessagePopUp", "<script language='JavaScript'>alert('" + msg + "');</script>");
         }
 
+        public void AddStartupCall(string call, string name)
+        {
+            base.ClientScript.RegisterStartupScript(base.GetType(), name, "<script language='JavaScript'>" + call + "</script>");
+        }
+
+        public void RemoveStartupCall(string name)
+        {
+            base.ClientScript.RegisterStartupScript(base.GetType(), name, string.Empty, true);
+        }
+
         public List<Conversion> Conversions
         {
             get

@@ -38,21 +38,19 @@ namespace ESMERALDA
             else
             {
                 Person inperson = (Person)GetSessionValue("WorkingPerson");
-                inperson.first_name = this.txtFirstName.Text;
-                inperson.middle_name = this.txtMiddleName.Text;
-                inperson.last_name = this.txtLastName.Text;
-                inperson.address_line1 = this.txtAddress1.Text;
-                inperson.address_line2 = this.txtAddress2.Text;
-                inperson.affiliation = this.txtAffiliation.Text;
-                inperson.city = this.txtCity.Text;
-                inperson.comment = this.txtComments.Text;
-                inperson.country = this.txtCountry.Text;
-                inperson.email = this.txtEmail.Text;
-                inperson.fax = this.txtFax.Text;
-                inperson.honorific = this.txtHonorific.Text;
-                inperson.phone = this.txtPhone.Text;
-                inperson.state = this.txtState.Text;
-                inperson.zipcode = this.txtZIP.Text;
+                inperson.SetMetadataValue("firstname", this.txtFirstName.Text);
+                inperson.SetMetadataValue("lastname", this.txtLastName.Text);
+                inperson.SetMetadataValue("address", this.txtAddress1.Text + (string.IsNullOrEmpty(txtAddress2.Text) ? "\n" + txtAddress2.Text : string.Empty));
+                inperson.SetMetadataValue("cntorg", this.txtAffiliation.Text);
+                inperson.SetMetadataValue("city", this.txtCity.Text);
+                inperson.SetMetadataValue("cntinst", this.txtComments.Text);
+                inperson.SetMetadataValue("country", this.txtCountry.Text);
+                inperson.SetMetadataValue("cntemail", this.txtEmail.Text);
+                inperson.SetMetadataValue("cntfax", this.txtFax.Text);
+                inperson.SetMetadataValue("honorific", this.txtHonorific.Text);
+                inperson.SetMetadataValue("cntvoice", this.txtPhone.Text);
+                inperson.SetMetadataValue("state", this.txtState.Text);
+                inperson.SetMetadataValue("postal", this.txtZIP.Text);
                 if (!string.IsNullOrEmpty(this.lblUserID.Text))
                 {
                     inperson.ID = new Guid(this.lblUserID.Text);
@@ -135,11 +133,13 @@ namespace ESMERALDA
                     base.CurrentUser = p;
                     this.login.Visible = false;
                     base.ShowAlert("Login successful!");
-                    PopulateData(p, conn);
+                    persondata.Visible = true;
+                    PopulateData(p, conn);                    
                 }
                 else
                 {
                     base.ShowAlert("Login incorrect.  Please try again, or create a new user account.");
+                    persondata.Visible = false;
                 }
             }
             catch (Exception ex)
@@ -187,6 +187,22 @@ namespace ESMERALDA
             {
                 this.login.Visible = false;
             }
+            if (!IsAuthenticated)
+            {
+                persondata.Visible = false;
+            }
+            else
+            {
+                persondata.Visible = true;
+            }
+            if (!UserIsAdministrator)
+            {
+                btnNewUser.Visible = false;
+            }
+            else
+            {
+                btnNewUser.Visible = true;
+            }
             if (!IsPostBack)
             {
                 RemoveSessionValue("WorkingPerson");                            
@@ -211,24 +227,27 @@ namespace ESMERALDA
 
         protected void PopulateData(Person inperson, SqlConnection conn)
         {
-            this.txtFirstName.Text = inperson.first_name;
-            this.txtMiddleName.Text = inperson.middle_name;
-            this.txtLastName.Text = inperson.last_name;
-            this.txtAddress1.Text = inperson.address_line1;
-            this.txtAddress2.Text = inperson.address_line2;
-            this.txtAffiliation.Text = inperson.affiliation;
-            this.txtCity.Text = inperson.city;
-            this.txtComments.Text = inperson.comment;
-            this.txtCountry.Text = inperson.country;
-            this.txtEmail.Text = inperson.email;
-            this.txtFax.Text = inperson.fax;
-            this.txtHonorific.Text = inperson.honorific;
-            this.txtPhone.Text = inperson.phone;
-            this.txtState.Text = inperson.state;
-            this.txtZIP.Text = inperson.zipcode;
+            this.txtFirstName.Text = inperson.GetMetadataValue("firstname");
+            this.txtLastName.Text = inperson.GetMetadataValue("lastname");
+            string[] tokens = inperson.GetMetadataValue("address").Split("\n".ToCharArray());
+            this.txtAddress1.Text = tokens[0];
+            if (tokens.Length > 1)
+                this.txtAddress2.Text = tokens[1];
+            else
+                this.txtAddress2.Text = string.Empty;
+            this.txtAffiliation.Text = inperson.GetMetadataValue("cntorg");
+            this.txtCity.Text = inperson.GetMetadataValue("city");
+            this.txtComments.Text = inperson.GetMetadataValue("cntinst");
+            this.txtCountry.Text = inperson.GetMetadataValue("country");
+            this.txtEmail.Text = inperson.GetMetadataValue("cntemail");
+            this.txtFax.Text = inperson.GetMetadataValue("cntfax");
+            this.txtHonorific.Text = inperson.GetMetadataValue("honorific");
+            this.txtPhone.Text = inperson.GetMetadataValue("cntvoice");
+            this.txtState.Text = inperson.GetMetadataValue("state");
+            this.txtZIP.Text = inperson.GetMetadataValue("postal");
             this.lblUserID.Text = inperson.ID.ToString();
             this.txtEmail.ReadOnly = true;
-            if (base.Username == inperson.email)
+            if (base.Username == inperson.GetMetadataValue("cntemail"))
             {
                 SqlCommand cmd = new SqlCommand("LookupUser", conn)
                 {
@@ -252,7 +271,6 @@ namespace ESMERALDA
                 this.txtPasswordNew.Enabled = true;
                 this.txtPasswordConfirm.Enabled = true;
                 this.txtFirstName.ReadOnly = false;
-                this.txtMiddleName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
                 this.txtAddress1.ReadOnly = false;
                 this.txtAddress2.ReadOnly = false;
@@ -271,7 +289,6 @@ namespace ESMERALDA
                 this.txtPasswordNew.Enabled = false;
                 this.txtPasswordConfirm.Enabled = false;
                 this.txtFirstName.ReadOnly = false;
-                this.txtMiddleName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
                 this.txtAddress1.ReadOnly = false;
                 this.txtAddress2.ReadOnly = false;
@@ -291,7 +308,6 @@ namespace ESMERALDA
                 this.txtPasswordConfirm.Enabled = false;
                 this.txtEmail.ReadOnly = true;
                 this.txtFirstName.ReadOnly = true;
-                this.txtMiddleName.ReadOnly = true;
                 this.txtLastName.ReadOnly = true;
                 this.txtAddress1.ReadOnly = true;
                 this.txtAddress2.ReadOnly = true;

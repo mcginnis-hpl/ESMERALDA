@@ -20,7 +20,6 @@ namespace ESMERALDAClasses
         public QueryField SourceField;
         public string Condition;
         public Conversion CondConversion;
-        protected View parentView;
 
         public override Metric FieldMetric
         {
@@ -37,7 +36,10 @@ namespace ESMERALDAClasses
         public ViewCondition(QueryField inField, ConditionType inType, View inParentView)
             : base()
         {
-            parentView = inParentView;
+            if(inField != null)
+                Name = inField.Name;
+
+            Parent = inParentView;
             Type = inType;
             SourceField = inField;
             Condition = string.Empty;
@@ -116,7 +118,7 @@ namespace ESMERALDAClasses
         {
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteCondition";
+            query.CommandText = "sp_ESMERALDA_WriteCondition";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@incondition_id", ID));
@@ -142,11 +144,22 @@ namespace ESMERALDAClasses
             }
         }
 
-        public override string FormattedColumnName
+        public string FormattedSourceName
         {
             get
             {
-                return ("[" + this.Parent.ParentProject.database_name + "].[dbo].[" + ((View)this.Parent).SourceData.SQLName + "].[" + this.SQLColumnName + "]");
+                View parent = (View)this.Parent;
+                if (this.SourceField == null)
+                    return string.Empty;
+                return ("[" + parent.SourceData.ParentProject.database_name + "].[dbo].[" + parent.SourceData.SQLName + "].[" + this.SourceField.SQLColumnName + "]");
+            }
+        }
+
+        public override string FormattedColumnName
+        {
+            get
+            {                
+                return ("[" + this.SQLColumnName + "]");
             }
         }
     }

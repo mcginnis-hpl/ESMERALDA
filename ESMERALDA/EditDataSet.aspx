@@ -4,7 +4,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
-    <title>Upload a File</title>
+    <title>Upload a Dataset</title>
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
     <script src="scripts/jquery-1.4.1.min.js" type="text/javascript" language="javascript"></script>
     <script src="scripts/esmeralda.js" type="text/javascript" language="javascript"></script>
@@ -400,6 +400,11 @@
             popup.style.left = (getOffset(ap).left + 20) + "px";
         }
 
+        function showSheetSelector() {
+            var popup = document.getElementById('spreadsheetSheetPicker');
+            popup.style.display = '';
+        }
+
         function replaceMetadataValue(column, row, value) {
             var spec = document.getElementById("fieldMetadata");
             var rows = spec.value.split("~");
@@ -647,6 +652,17 @@
                                     <a href="javascript:cancelMetadata()">Cancel</a>
                                 </td>
                             </tr>
+                        </table>
+                    </div>
+                    <div id="spreadsheetSheetPicker" style="display:none; position: absolute; left: 50%; top: 50%;
+                        padding: 16px; background: #FFFFFF; border: 2px solid #2266AA; z-index: 100; width:400px; height:50px; margin-left:-200px; margin-top:-25px;">
+                        <table border="0">
+                            <tr><td>Please select the sheet to use:</td><td>
+                                <asp:DropDownList ID="comboSpreadsheetSheets" runat="server">
+                                </asp:DropDownList>
+                                <asp:Button ID="btnSelectSheet" runat="server" Text="OK" 
+                                    onclick="btnSelectSheet_Click" />
+                               </td></tr>
                         </table>
                     </div>
                     <div id="newMetricWindow" style="display: none; position: absolute; left: 0px; top: 0px;

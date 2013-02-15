@@ -3,6 +3,8 @@ using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Web;
+using Ionic.Zip;
+using System.IO;
 
 namespace ESMERALDA
 {
@@ -13,6 +15,8 @@ namespace ESMERALDA
             View working = null;
             string viewid = string.Empty;
             bool isMetadata = false;
+            string delimiter = ",";
+            bool compress = false;
             for (int i = 0; i < base.Request.Params.Count; i++)
             {
                 if (base.Request.Params.GetKey(i).ToUpper() == "VIEWID")
@@ -23,31 +27,43 @@ namespace ESMERALDA
                 {
                     isMetadata = true;
                 }
+                if ((base.Request.Params.GetKey(i).ToUpper() == "COMPRESS") && (base.Request.Params[i] == "1"))
+                {
+                    compress = true;
+                }
+                if (base.Request.Params.GetKey(i).ToUpper() == "DELIM")
+                {
+                    if (Request.Params[i] == "TAB")
+                    {
+                        delimiter = "\t";
+                    }
+                    else
+                    {
+                        delimiter = ",";
+                    }
+                }
             }
             if (!string.IsNullOrEmpty(viewid))
             {
                 working = (View)base.GetSessionValue("View-" + viewid);
                 if (working != null)
                 {
-                    string fname = working.SourceData.Name;
+                    string fname = working.SourceData.GetMetadataValue("title");
+                    string extension = "csv";
                     if (isMetadata)
                     {
-                        fname = fname + "-view.xml";
+                        extension = "xml";                        
+                    }
+                    else if (compress)
+                    {
+                        extension = "zip";
                     }
                     else
                     {
-                        fname = fname + "-view.csv";
+                        extension = "csv";
                     }
-                    string attachment = "attachment; filename=" + fname;
-                    string data = string.Empty;
-                    if (!isMetadata)
-                    {
-                        data = this.PopulateData(working);
-                    }
-                    else
-                    {
-                        data = this.PopulateMetadata(working);
-                    }
+                    fname = fname + "-view." + extension;
+                    string attachment = "attachment; filename=" + fname;                    
                     HttpContext.Current.Response.Clear();
                     HttpContext.Current.Response.ClearHeaders();
                     HttpContext.Current.Response.ClearContent();
@@ -58,20 +74,49 @@ namespace ESMERALDA
                     }
                     else
                     {
-                        HttpContext.Current.Response.AddHeader("content-disposition", attachment);
-                        HttpContext.Current.Response.ContentType = "text/csv";
+                        if (!compress)
+                        {
+                            HttpContext.Current.Response.AddHeader("content-disposition", attachment);
+                            HttpContext.Current.Response.ContentType = "text/csv";
+                        }
+                        else
+                        {
+                            HttpContext.Current.Response.AddHeader("content-disposition", attachment);
+                            HttpContext.Current.Response.ContentType = "application/zip";
+                        }
                     }
                     HttpContext.Current.Response.AddHeader("Pragma", "public");
-                    HttpContext.Current.Response.Write(data);
+                    if (compress)
+                    {
+                        string inner_fname = fname + "-view.csv";
+                        ZipOutputStream zipout = new ZipOutputStream(Response.OutputStream);
+                        zipout.PutNextEntry(inner_fname);
+
+                        StreamWriter outWriter = new StreamWriter(zipout);
+                        PopulateData(working, delimiter, outWriter);
+                        zipout.Dispose();                  
+                    }
+                    else
+                    {
+                        if(isMetadata)
+                        {
+                            string data = this.PopulateMetadata(working);
+                            HttpContext.Current.Response.Write(data);
+                        }
+                        else
+                        {
+                            StreamWriter outWriter = new StreamWriter(Response.OutputStream);
+                            PopulateData(working, delimiter, outWriter);
+                        }
+                    }                    
                     HttpContext.Current.Response.End();
                 }
             }
         }
 
-        protected string PopulateData(View working)
+        protected void PopulateData(View working, string delimiter, StreamWriter outStream)
         {
             int i;
-            string ret = string.Empty;
             string dbname = working.SourceData.ParentProject.database_name;
             SqlConnection conn = base.ConnectToDatabaseReadOnly(dbname);
             int numrows = -1;
@@ -85,13 +130,13 @@ namespace ESMERALDA
                     {
                         if (!string.IsNullOrEmpty(newline))
                         {
-                            newline = newline + ",";
+                            newline = newline + delimiter;
                         }
                         newline = newline + ((ViewCondition)working.Header[i]).SourceField.Name;
                     }
                     i++;
                 }
-                ret = newline;
+                outStream.WriteLine(newline);
             }
             string cmd = working.GetQuery(numrows);
             if (!string.IsNullOrEmpty(cmd))
@@ -108,7 +153,7 @@ namespace ESMERALDA
                             {
                                 if (!string.IsNullOrEmpty(newline))
                                 {
-                                    newline = newline + ",";
+                                    newline = newline + delimiter;
                                 }
                                 if (!reader.IsDBNull(reader.GetOrdinal(working.Header[i].SQLColumnName)))
                                 {
@@ -125,7 +170,8 @@ namespace ESMERALDA
                         }
                         if (!string.IsNullOrEmpty(newline))
                         {
-                            ret = ret + "\n" + newline;
+                            outStream.WriteLine(newline);
+                            outStream.Flush();
                         }
                     }
                 }
@@ -143,31 +189,31 @@ namespace ESMERALDA
                             {
                                 if (!string.IsNullOrEmpty(header_row))
                                 {
-                                    header_row = header_row + ",";
+                                    header_row = header_row + delimiter;
                                 }
                                 header_row = header_row + reader.GetName(i);
                                 i++;
                             }
-                            ret = header_row;
+                            outStream.WriteLine(header_row);
                         }
                         for (i = 0; i < reader.FieldCount; i++)
                         {
                             if (!string.IsNullOrEmpty(newline))
                             {
-                                newline = newline + ",";
+                                newline = newline + delimiter;
                             }
                             newline = newline + reader[i].ToString();
                         }
                         if (!string.IsNullOrEmpty(newline))
                         {
-                            ret = ret + "\n" + newline;
+                            outStream.WriteLine(newline);
+                            outStream.Flush();
                         }
                     }
                 }
                 reader.Close();
                 conn.Close();
             }
-            return ret;
         }
 
         protected string PopulateMetadata(View working)

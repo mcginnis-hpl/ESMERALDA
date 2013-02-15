@@ -4,41 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
+using System.Xml;
 
 namespace ESMERALDAClasses
 {
     public class Dataset : QuerySet
     {
-        public string URL;
-        public string Description;
-        public string BriefDescription;
-        public string AcquisitionDescription;
-        public string ProcessingDescription;
         public int Version;
         public bool IsEditable;
-        public double MinLat;
-        public double MinLon;
-        public double MaxLat;
-        public double MaxLon;
 
         public override string GetMetadata()
         {
-            string ret = string.Empty;
-            ret = "<dataset>";
-            ret += "<dataset_name>" + Name + "</dataset_name>";
-            ret += "<brief_description>" + BriefDescription + "</brief_description>";
-            ret += "<description>" + Description + "</description>";
-            ret += "<dataset_url>" + URL + "</dataset_url>";
-            ret += "<acquisition_description>" + AcquisitionDescription + "</acquisition_description>";
-            ret += "<processing_description>" + ProcessingDescription + "</processing_description>";
-            ret += "<version>" + Version.ToString() + "</version>";
-            ret += "<fields>";
-            foreach (QueryField f in Header)
-            {
-                ret += f.GetMetadata();
-            }
-            ret += "</fields>";
-            ret += "</dataset>";
+            string ret = string.Empty;            
             return ret;
         }
 
@@ -46,18 +23,8 @@ namespace ESMERALDAClasses
             : base()
         {
             Header = new List<QueryField>();
-            Name = string.Empty;
-            URL = string.Empty;
-            Description = string.Empty;
-            BriefDescription = string.Empty;
-            AcquisitionDescription = string.Empty;
-            ProcessingDescription = string.Empty;
             Version = -1;
             IsEditable = true;
-            MinLat = double.NaN;
-            MinLon = double.NaN;
-            MaxLat = double.NaN;
-            MaxLon = double.NaN;
         }
 
         public bool IsDefined
@@ -75,12 +42,20 @@ namespace ESMERALDAClasses
             }
         }
 
+        public string BuildMetadata(Project parentProject, Program parentProgram)
+        {
+            XmlDocument doc = new XmlDocument();
+            XmlNode node = doc.CreateNode(XmlNodeType.XmlDeclaration, "", "");
+            doc.AppendChild(node);
+            return doc.InnerXml;
+        }
+
         public override void Load(SqlConnection conn, Guid inID, List<Conversion> globalConversions, List<Metric> metrics)
         {
             ID = inID;
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadDataset";
+            query.CommandText = "sp_ESMERALDA_LoadDataset";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inID", inID));
@@ -90,17 +65,7 @@ namespace ESMERALDAClasses
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
-                {
-                    if (!reader.IsDBNull(reader.GetOrdinal("dataset_name")))
-                        Name = reader["dataset_name"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("brief_description")))
-                        BriefDescription = reader["brief_description"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("dataset_description")))
-                        Description = reader["dataset_description"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("acquisition_description")))
-                        AcquisitionDescription = reader["acquisition_description"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("processing_description")))
-                        ProcessingDescription = reader["processing_description"].ToString();
+                {                   
                     if (!reader.IsDBNull(reader.GetOrdinal("version")))
                         Version = int.Parse(reader["version"].ToString());
                     if (!reader.IsDBNull(reader.GetOrdinal("project_id")))
@@ -109,21 +74,13 @@ namespace ESMERALDAClasses
                         SQLName = reader["sql_table_name"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("editable")))
                         IsEditable = bool.Parse(reader["editable"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("min_lon")))
-                        MinLon = double.Parse(reader["min_lon"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("min_lat")))
-                        MinLat = double.Parse(reader["min_lat"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("max_lon")))
-                        MaxLon = double.Parse(reader["max_lon"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("max_lat")))
-                        MaxLat = double.Parse(reader["max_lat"].ToString());
                 }
             }
             reader.Close();
 
             query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadFields";
+            query.CommandText = "sp_ESMERALDA_LoadFields";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inDatasetID", inID));
@@ -164,45 +121,7 @@ namespace ESMERALDAClasses
                 }
             }
             reader.Close();
-
-            query = new SqlCommand();
-            query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadFieldsAdditionalMetadata";
-            query.CommandTimeout = 60;
-            query.Connection = conn;
-            query.Parameters.Add(new SqlParameter("@inDatasetID", inID));
-            reader = query.ExecuteReader();
-            while (reader.Read())
-            {
-                if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
-                {
-                    Guid fieldid = new Guid(reader["field_id"].ToString());
-                    foreach (Field f in Header)
-                    {
-                        if (f.ID == fieldid)
-                        {
-                            if (f.Metadata == null)
-                                f.Metadata = new Field_Metadata();
-
-                            if (!reader.IsDBNull(reader.GetOrdinal("observation_methodology")))
-                                f.Metadata.observation_methodology = reader["observation_methodology"].ToString();
-                            if (!reader.IsDBNull(reader.GetOrdinal("instrument")))
-                                f.Metadata.instrument = reader["instrument"].ToString();
-                            if (!reader.IsDBNull(reader.GetOrdinal("analysis_methodology")))
-                                f.Metadata.analysis_methodology = reader["analysis_methodology"].ToString();
-                            if (!reader.IsDBNull(reader.GetOrdinal("processing_methodology")))
-                                f.Metadata.processing_methodology = reader["processing_methodology"].ToString();
-                            if (!reader.IsDBNull(reader.GetOrdinal("citations")))
-                                f.Metadata.citations = reader["citations"].ToString();
-                            if (!reader.IsDBNull(reader.GetOrdinal("description")))
-                                f.Metadata.description = reader["description"].ToString();
-                            break;
-                        }
-                    }
-                }
-            }
-            reader.Close();
-
+            
             base.Load(conn);        
             foreach (Field f in Header)
             {
@@ -236,19 +155,13 @@ namespace ESMERALDAClasses
             }
             if (string.IsNullOrEmpty(SQLName))
             {
-                SQLName = Utils.CreateDBName(Name);
+                SQLName = Utils.CreateDBName(GetMetadataValue("title"));
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteDataset";
+            query.CommandText = "sp_ESMERALDA_WriteDataset";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@indataset_id", ID));
-            query.Parameters.Add(new SqlParameter("@indataset_name", Name));
-            query.Parameters.Add(new SqlParameter("@indataset_url", URL));
-            query.Parameters.Add(new SqlParameter("@inbrief_description", BriefDescription));
-            query.Parameters.Add(new SqlParameter("@indataset_description", Description));
-            query.Parameters.Add(new SqlParameter("@inacquisition_description", AcquisitionDescription));
-            query.Parameters.Add(new SqlParameter("@inprocessing_description", ProcessingDescription));
             if (ParentProject != null)
             {
                 query.Parameters.Add(new SqlParameter("@inproject_id", ParentProject.ID));
@@ -256,14 +169,6 @@ namespace ESMERALDAClasses
             query.Parameters.Add(new SqlParameter("@inversion", Version));
             query.Parameters.Add(new SqlParameter("@insql_table_name", SQLName));
             query.Parameters.Add(new SqlParameter("@ineditable", IsEditable));
-            if (!double.IsNaN(MinLat))
-                query.Parameters.Add(new SqlParameter("@inmin_lat", MinLat));
-            if (!double.IsNaN(MinLon))
-                query.Parameters.Add(new SqlParameter("@inmin_lon", MinLon));
-            if (!double.IsNaN(MaxLat))
-                query.Parameters.Add(new SqlParameter("@inmax_lat", MaxLat));
-            if (!double.IsNaN(MaxLon))
-                query.Parameters.Add(new SqlParameter("@inmax_lon", MaxLon));
             query.ExecuteScalar();
 
             foreach (Field f in Header)
@@ -290,7 +195,7 @@ namespace ESMERALDAClasses
             query.Connection = conn;
             query.CommandType = CommandType.StoredProcedure;
             query.CommandTimeout = 60;
-            query.CommandText = "sp_GetMaxTemporaryRowNumber";
+            query.CommandText = "sp_ESMERALDA_GetMaxTemporaryRowNumber";
             query.Parameters.Add(new SqlParameter("@inID", myId));
             SqlDataReader reader = query.ExecuteReader();
             while (reader.Read())
@@ -504,33 +409,78 @@ namespace ESMERALDAClasses
                 {
                     if (!reader.IsDBNull(0))
                     {
-                        MinLat = double.Parse(reader[0].ToString());
-                        MinLon = double.Parse(reader[1].ToString());
-                        MaxLat = double.Parse(reader[2].ToString());
-                        MaxLon = double.Parse(reader[3].ToString());
+                        SetMetadataValue("southbc", reader[0].ToString());
+                        SetMetadataValue("westbc", reader[1].ToString());
+                        SetMetadataValue("northbc", reader[2].ToString());
+                        SetMetadataValue("eastbc", reader[3].ToString());
                     }
                 }
                 reader.Close();
 
-                query = new SqlCommand();
-                query.Connection = conn;
-                query.CommandTimeout = 60;
-                query.CommandType = CommandType.StoredProcedure;
-                query.CommandText = "sp_UpdateDatasetBounds";
-                query.Parameters.Add(new SqlParameter("@inDatasetID", ID));
-                query.Parameters.Add(new SqlParameter("@inmin_lat", MinLat));
-                query.Parameters.Add(new SqlParameter("@inmin_lon", MinLon));
-                query.Parameters.Add(new SqlParameter("@inmax_lat", MaxLat));
-                query.Parameters.Add(new SqlParameter("@inmax_lon", MaxLon));
-                query.ExecuteNonQuery();
-
+                Save(conn);
                 dataconn.Close();
             }
         }
 
+        public void GetFieldMinMax(Field inField, ref object outMin, ref object outMax)
+        {
+            string dbname = ParentProject.database_name;
+            SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
+            SqlCommand query = new SqlCommand();
+            query.Connection = dataconn;
+            query.CommandTimeout = 60;
+            query.CommandType = CommandType.Text;
+            string cmd = "SELECT MIN(" + inField.SQLColumnName + ") AS MinValue, MAX(" + inField.SQLColumnName + ") AS MaxValue FROM " + ParentProject.database_name + ".dbo." + SQLName;
+            query.CommandText = cmd;
+            SqlDataReader reader = query.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(reader.GetOrdinal("MinValue")))
+                {
+                    if (inField.DBType == Field.FieldType.DateTime)
+                    {
+                        outMin = DateTime.Parse(reader["MinValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Decimal)
+                    {
+                        outMin = double.Parse(reader["MinValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Integer)
+                    {
+                        outMin = int.Parse(reader["MinValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Text)
+                    {
+                        outMin = reader["MinValue"].ToString();
+                    }
+                }
+                if (!reader.IsDBNull(reader.GetOrdinal("MaxValue")))
+                {
+                    if (inField.DBType == Field.FieldType.DateTime)
+                    {
+                        outMin = DateTime.Parse(reader["MaxValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Decimal)
+                    {
+                        outMin = double.Parse(reader["MaxValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Integer)
+                    {
+                        outMin = int.Parse(reader["MaxValue"].ToString());
+                    }
+                    else if (inField.DBType == Field.FieldType.Text)
+                    {
+                        outMin = reader["MaxValue"].ToString();
+                    }
+                }
+            }
+            reader.Close();
+            dataconn.Close();
+        }
+
         public DataTable BuildDataTable(DataTable data, int num_rows)
         {
-            DataTable ret = new DataTable(Name);
+            DataTable ret = new DataTable(GetMetadataValue("title"));
             for (int i = 0; i < Header.Count; i++)
             {
                 Field f = (Field)Header[i];
@@ -766,39 +716,7 @@ namespace ESMERALDAClasses
                                         }
                                         else
                                         {
-                                            newrow[f.SQLColumnName] = d_val;
-                                            if (f.FieldMetric.ID == lat_guid)
-                                            {
-                                                if (double.IsNaN(MinLat))
-                                                {
-                                                    MinLat = d_val;
-                                                    MaxLat = d_val;
-                                                }
-                                                else if (d_val < MinLat)
-                                                {
-                                                    MinLat = d_val;
-                                                }
-                                                else if (d_val > MaxLat)
-                                                {
-                                                    MaxLat = d_val;
-                                                }
-                                            }
-                                            if (f.FieldMetric.ID == lon_guid)
-                                            {
-                                                if (double.IsNaN(MinLon))
-                                                {
-                                                    MinLon = d_val;
-                                                    MaxLon = d_val;
-                                                }
-                                                else if (d_val < MinLon)
-                                                {
-                                                    MinLon = d_val;
-                                                }
-                                                else if (d_val > MaxLon)
-                                                {
-                                                    MaxLon = d_val;
-                                                }
-                                            }
+                                            newrow[f.SQLColumnName] = d_val;                                            
                                         }
                                     }
                                     else
@@ -834,6 +752,79 @@ namespace ESMERALDAClasses
             if (newrow != null)
                 ret.Rows.Add(newrow);
             return ret;
+        }
+
+        public void AutopopulateFields(List<Metric> metrics)
+        {
+            SqlConnection conn = null;
+            try
+            {
+                conn = Utils.ConnectToDatabaseReadOnly(ParentProject.database_name);
+                string cmd = "SELECT TOP(1) * FROM " + SQLName;
+                SqlCommand query = new SqlCommand()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = cmd
+                };
+                SqlDataReader reader = query.ExecuteReader();
+                while (reader.Read())
+                {
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        string col_name = reader.GetName(i);
+                        string col_type = reader.GetDataTypeName(i);
+                        Field f = new Field();
+                        f.SourceColumnName = col_name;
+                        f.SQLColumnName = col_name;
+                        f.Name = col_name;
+                        Guid field_guid = Guid.Empty;
+                        if (col_type == "int")
+                        {
+                            f.DBType = Field.FieldType.Integer;
+                            field_guid = Metric.GenericInt;
+                        }
+                        else if (col_type == "float" || col_type == "numeric" || col_type == "real")
+                        {
+                            f.DBType = Field.FieldType.Decimal;
+                            field_guid = Metric.GenericDecimal;
+                        }
+                        else if (col_type == "varchar" || col_type == "nvarchar")
+                        {
+                            f.DBType = Field.FieldType.Text;
+                            field_guid = Metric.GenericDecimal;
+                        }
+                        else if (col_type == "datetime")
+                        {
+                            f.DBType = Field.FieldType.DateTime;
+                            field_guid = Metric.GenericDatetime;
+                        }
+                        if (field_guid != Guid.Empty)
+                        {
+                            foreach (Metric m in metrics)
+                            {
+                                if (m.ID == field_guid)
+                                {
+                                    f.FieldMetric = m;
+                                    break;
+                                }
+                            }
+                        }
+                        Header.Add(f);
+                    }
+                }
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+            }
+            finally
+            {
+                if(conn != null)
+                    conn.Close();
+            }
         }
     }
 }

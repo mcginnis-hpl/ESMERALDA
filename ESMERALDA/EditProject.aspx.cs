@@ -14,14 +14,14 @@ namespace ESMERALDA
         {
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             Project theProject = (Project)base.GetSessionValue("WorkingProject");
-            theProject.project_name = this.txtMetadata_Name.Text;
-            theProject.acronym = this.txtMetadata_Acronym.Text;
-            theProject.description = this.txtMetadata_Description.Text;
-            theProject.logo_url = this.txtMetadata_LogoURL.Text;
-            theProject.small_logo_url = this.txtMetadata_SmallLogoURL.Text;
-            theProject.project_url = this.txtMetadata_URL.Text;
-            theProject.start_date = this.controlStartDate.SelectedDate;
-            theProject.end_date = this.controlEndDate.SelectedDate;
+            theProject.SetMetadataValue("title", this.txtMetadata_Name.Text);
+            theProject.SetMetadataValue("acronym", this.txtMetadata_Acronym.Text);
+            theProject.SetMetadataValue("description", this.txtMetadata_Description.Text);
+            theProject.SetMetadataValue("logourl", this.txtMetadata_LogoURL.Text);
+            theProject.SetMetadataValue("small_logo_url", this.txtMetadata_SmallLogoURL.Text);
+            theProject.SetMetadataValue("url", this.txtMetadata_URL.Text);
+            theProject.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
+            theProject.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
             if (theProject.Owner == null)
             {
                 theProject.Owner = base.CurrentUser;
@@ -82,7 +82,7 @@ namespace ESMERALDA
         {
             string innerHTML = string.Empty;
             string cmd = string.Empty;
-            cmd = "SELECT dataset_name, dataset_id, brief_description FROM v_dataset_metadata WHERE project_id='" + inProject.ID.ToString() + "' AND (IsPublic=1";
+            cmd = "SELECT dataset_name, dataset_id, dataset_purpose FROM v_ESMERALDA_dataset_metadata WHERE project_id='" + inProject.ID.ToString() + "' AND (IsPublic=1";
             if (IsAuthenticated && CurrentUser != null)
             {
                 cmd += " OR CreatedBy='" + CurrentUser.ID + "'";
@@ -97,7 +97,7 @@ namespace ESMERALDA
                 {
                     innerHTML = "<h3>Project Datasets</h3><br/><table border='0'>";
                 }
-                innerHTML = innerHTML + "<tr><td><a href='ViewDataset.aspx?DATASETID=" + reader["dataset_id"].ToString() + "'>" + reader["dataset_name"].ToString() + "</a></td><td>" + reader["brief_description"].ToString() + "</td></tr>";
+                innerHTML = innerHTML + "<tr><td><a href='ViewDataset.aspx?DATASETID=" + reader["dataset_id"].ToString() + "'>" + reader["dataset_name"].ToString() + "</a></td><td>" + reader["dataset_purpose"].ToString() + "</td></tr>";
             }
             innerHTML = innerHTML + "</table>";
             this.currentDatasets.InnerHtml = innerHTML;
@@ -109,27 +109,28 @@ namespace ESMERALDA
                 this.addDatasetControl.InnerHtml = url;
             }
             else
-            {
-                this.addDatasetControl.InnerHtml = string.Empty;
+            {               
+                string url = "<a href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a join to this project.</a>";
+                this.addDatasetControl.InnerHtml = url;
             }
         }
 
         protected void PopulateFields(SqlConnection conn, Project theProject)
         {
-            this.txtMetadata_Name.Text = theProject.project_name;
-            this.txtMetadata_Acronym.Text = theProject.acronym;
-            this.txtMetadata_Description.Text = theProject.description;
-            this.txtMetadata_LogoURL.Text = theProject.logo_url;
-            this.txtMetadata_SmallLogoURL.Text = theProject.small_logo_url;
-            this.txtMetadata_URL.Text = theProject.project_url;
+            this.txtMetadata_Name.Text = theProject.GetMetadataValue("title");
+            this.txtMetadata_Acronym.Text = theProject.GetMetadataValue("acronym");
+            this.txtMetadata_Description.Text = theProject.GetMetadataValue("description");
+            this.txtMetadata_LogoURL.Text = theProject.GetMetadataValue("logourl");
+            this.txtMetadata_SmallLogoURL.Text = theProject.GetMetadataValue("small_logo_url");
+            this.txtMetadata_URL.Text = theProject.GetMetadataValue("url");
             this.txtMetadata_DatabaseName.Text = theProject.override_database_name;
-            if (theProject.start_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("startdate")))
             {
-                this.controlStartDate.SelectedDate = theProject.start_date;
+                this.controlStartDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("startdate"));
             }
-            if (theProject.end_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("enddate")))
             {
-                this.controlEndDate.SelectedDate = theProject.end_date;
+                this.controlEndDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("enddate"));
             }
             this.PopulatePrograms(conn, theProject);
             if (theProject.ID != Guid.Empty)
@@ -167,7 +168,7 @@ namespace ESMERALDA
         {
             this.comboParentProgram.Items.Clear();
             this.comboParentProgram.Items.Add(new ListItem("", ""));
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT program_id, program_name FROM program_metadata ORDER BY program_name" }.ExecuteReader();
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT program_id, program_name FROM v_ESMERALDA_program_metadata ORDER BY program_name" }.ExecuteReader();
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("program_id")))
@@ -186,14 +187,14 @@ namespace ESMERALDA
         protected void PopulateViewList(SqlConnection conn, Project inProject)
         {
             string innerHTML = string.Empty;
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT view_name, view_id, brief_description FROM v_Views_By_Project WHERE project_id='" + inProject.ID.ToString() + "' ORDER BY view_name" }.ExecuteReader();
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT view_name, view_id, view_description FROM v_ESMERALDA_view_metadata WHERE project_id='" + inProject.ID.ToString() + "' ORDER BY view_name" }.ExecuteReader();
             while (reader.Read())
             {
                 if (string.IsNullOrEmpty(innerHTML))
                 {
                     innerHTML = "<h3>Project Views</h3><br/><table border='0'>";
                 }
-                innerHTML = innerHTML + "<tr><td><a href='ViewDataset.aspx?VIEWID=" + reader["view_id"].ToString() + "'>" + reader["view_name"].ToString() + "</a></td><td>" + reader["brief_description"].ToString() + "</td></tr>";
+                innerHTML = innerHTML + "<tr><td><a href='ViewDataset.aspx?VIEWID=" + reader["view_id"].ToString() + "'>" + reader["view_name"].ToString() + "</a></td><td>" + reader["view_description"].ToString() + "</td></tr>";
             }
             innerHTML = innerHTML + "</table>";
             this.currentViews.InnerHtml = innerHTML;

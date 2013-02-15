@@ -13,7 +13,6 @@ namespace ESMERALDAClasses
         public string Name;
         protected Field.FieldType m_DBType;
         protected Metric m_FieldMetric;
-        public Field_Metadata Metadata;
         public QuerySet Parent;
 
         public virtual Metric FieldMetric
@@ -59,7 +58,6 @@ namespace ESMERALDAClasses
             Name = string.Empty;
             m_FieldMetric = null;
             m_DBType = Field.FieldType.None;
-            Metadata = new Field_Metadata();
             Parent = null;
         }
 
@@ -70,7 +68,6 @@ namespace ESMERALDAClasses
         public Project ParentProject;
         public List<QueryField> Header;
         public string SQLName;
-        public string Name;
 
         public QuerySet()
         {
@@ -90,17 +87,12 @@ namespace ESMERALDAClasses
     public class View : QuerySet
     {
         public QuerySet SourceData;
-        public string Description;
-        public string BriefDescription;
         public string SQLQuery;
 
         public View(QuerySet inData)
             : base()
         {
             SourceData = inData;
-            Name = string.Empty;
-            Description = string.Empty;
-            BriefDescription = string.Empty;
             ID = Guid.NewGuid();
             SQLQuery = string.Empty;
             ParentProject = inData.ParentProject;
@@ -110,9 +102,6 @@ namespace ESMERALDAClasses
             : base()
         {
             SourceData = null;
-            Name = string.Empty;
-            Description = string.Empty;
-            BriefDescription = string.Empty;
             ID = Guid.NewGuid();
             SQLQuery = string.Empty;
         }
@@ -120,9 +109,9 @@ namespace ESMERALDAClasses
         public override string GetMetadata()
         {
             string ret = "<data_view>";
-            ret += "<view_name>" + Name + "</view_name>";
-            ret += "<brief_description>" + BriefDescription + "</brief_description>";
-            ret += "<description>" + Description + "</description>";
+            ret += "<view_name>" + GetMetadataValue("title") + "</view_name>";
+            ret += "<brief_description>" + GetMetadataValue("purpose") + "</brief_description>";
+            ret += "<description>" + GetMetadataValue("description") + "</description>";
             ret += "<created_on>" + Timestamp.ToShortDateString() + "</created_on>";
             if (Owner != null)
             {
@@ -171,6 +160,13 @@ namespace ESMERALDAClasses
                 ViewCondition vc = (ViewCondition)Header[i];
                 if (vc.Type != ViewCondition.ConditionType.Exclude)
                 {
+                    if(vc.Type == ViewCondition.ConditionType.None)
+                    {
+                        if (string.IsNullOrEmpty(vc.FormattedSourceName) || string.IsNullOrEmpty(vc.FormattedColumnName))
+                        {
+                            continue;
+                        }
+                    }
                     if (init)
                     {
                         ret += ",";
@@ -197,11 +193,11 @@ namespace ESMERALDAClasses
                     }
                     else if (vc.Type == ViewCondition.ConditionType.Conversion && vc.DBType != Field.FieldType.DateTime)
                     {
-                        ret += " Repository_Metadata.dbo." + vc.CondConversion.FormulaName + "(" + vc.FormattedColumnName + ") AS " + vc.SQLColumnName;
+                        ret += " Repository_Metadata.dbo." + vc.CondConversion.FormulaName + "(" + vc.FormattedSourceName + ") AS " + vc.FormattedColumnName;
                     }
                     else
                     {
-                        ret += " " + vc.FormattedColumnName + " AS " + vc.SQLColumnName;
+                        ret += " " + vc.FormattedSourceName + " AS " + vc.FormattedColumnName;
                     }
                 }
             }
@@ -320,19 +316,16 @@ namespace ESMERALDAClasses
                 ID = Guid.NewGuid();
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteView";
+            query.CommandText = "sp_ESMERALDA_WriteView";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inview_id", ID));
             query.Parameters.Add(new SqlParameter("@indataset_id", SourceData.ID));
-            query.Parameters.Add(new SqlParameter("@inview_name", Name));
             if (string.IsNullOrEmpty(SQLName))
             {
-                SQLName = Utils.CreateUniqueTableName(Name, dataconn);
+                SQLName = Utils.CreateUniqueTableName(GetMetadataValue("title"), dataconn);
             }
             query.Parameters.Add(new SqlParameter("@inview_sqlname", SQLName));
-            query.Parameters.Add(new SqlParameter("@indescription", Description));
-            query.Parameters.Add(new SqlParameter("@inbrief_description", BriefDescription));
             query.Parameters.Add(new SqlParameter("@query", SQLQuery));
             if(ParentProject != null)
                 query.Parameters.Add(new SqlParameter("@inproject_id", ParentProject.ID));
@@ -353,7 +346,7 @@ namespace ESMERALDAClasses
         {
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadView";
+            query.CommandText = "sp_ESMERALDA_LoadView";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inID", viewID));
@@ -361,9 +354,6 @@ namespace ESMERALDAClasses
             Guid enteredbyid = Guid.Empty;
             Guid projectid = Guid.Empty;
             Guid sourceid = Guid.Empty;
-            string view_name = string.Empty;
-            string view_briefdescription = string.Empty;
-            string view_description = string.Empty;
             string view_sqlname = string.Empty;
             string view_query = string.Empty;
             DateTime view_createdon = DateTime.MinValue;
@@ -373,12 +363,6 @@ namespace ESMERALDAClasses
                 if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
                 {
                     sourceid = new Guid(reader["dataset_id"].ToString());
-                    if (!reader.IsDBNull(reader.GetOrdinal("view_name")))
-                        view_name = reader["view_name"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("description")))
-                        view_description = reader["description"].ToString();
-                    if (!reader.IsDBNull(reader.GetOrdinal("brief_description")))
-                        view_briefdescription = reader["brief_description"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("view_sqlname")))
                         view_sqlname = reader["view_sqlname"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("query")))
@@ -403,9 +387,6 @@ namespace ESMERALDAClasses
             }
 
             ID = viewID;
-            Name = view_name;
-            BriefDescription = view_briefdescription;
-            Description = view_description;
             SQLName = view_sqlname;
             SQLQuery = view_query;
             if (projectid != Guid.Empty)
@@ -416,7 +397,7 @@ namespace ESMERALDAClasses
             }
             query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadViewConditions";
+            query.CommandText = "sp_ESMERALDA_LoadViewConditions";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inview_id", viewID));

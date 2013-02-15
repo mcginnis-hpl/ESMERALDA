@@ -19,15 +19,15 @@ namespace ESMERALDA
             {
                 theProject = new Project();
             }
-            theProject.project_name = this.txtProject_Name.Text;
-            theProject.acronym = this.txtProject_Acronym.Text;
-            theProject.description = this.txtProject_Description.Text;
-            theProject.logo_url = this.txtProject_LogoURL.Text;
+            theProject.SetMetadataValue("title", this.txtProject_Name.Text);
+            theProject.SetMetadataValue("acronym", this.txtProject_Acronym.Text);
+            theProject.SetMetadataValue("description", this.txtProject_Description.Text);
+            theProject.SetMetadataValue("logourl", this.txtProject_LogoURL.Text);
             theProject.override_database_name = this.txtProject_DatabaseName.Text;
-            theProject.small_logo_url = this.txtProject_SmallLogoURL.Text;
-            theProject.project_url = this.txtProject_URL.Text;
-            theProject.start_date = this.controlStartDate.SelectedDate;
-            theProject.end_date = this.controlEndDate.SelectedDate;
+            theProject.SetMetadataValue("small_logo_url", this.txtProject_SmallLogoURL.Text);
+            theProject.SetMetadataValue("url", this.txtProject_URL.Text);
+            theProject.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
+            theProject.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
             if (theProject.Owner == null)
             {
                 theProject.Owner = base.CurrentUser;
@@ -75,15 +75,15 @@ namespace ESMERALDA
             this.txtRowSourceColumn.Text = string.Empty;
             f.SQLColumnName = this.txtRowSQLColumn.Text;
             this.txtRowSQLColumn.Text = string.Empty;
-            f.Metadata.description = this.txtRowCitations.Text;
+            f.SetMetadataValue("description", this.txtRowCitations.Text);
             this.txtRowCitations.Text = string.Empty;
-            f.Metadata.analysis_methodology = this.txtRowAnalysis.Text;
+            f.SetMetadataValue("analysis_methodology", this.txtRowAnalysis.Text);
             this.txtRowAnalysis.Text = string.Empty;
-            f.Metadata.instrument = this.txtRowInstrument.Text;
+            f.SetMetadataValue("instrument", this.txtRowInstrument.Text);
             this.txtRowInstrument.Text = string.Empty;
-            f.Metadata.observation_methodology = this.txtRowObservation.Text;
+            f.SetMetadataValue("observation_methodology", this.txtRowObservation.Text);
             this.txtRowObservation.Text = string.Empty;
-            f.Metadata.processing_methodology = this.txtRowProcessing.Text;
+            f.SetMetadataValue("processing_methodology", this.txtRowProcessing.Text);
             this.txtRowProcessing.Text = string.Empty;
             f.Parent = working;
             if (edit_row >= 0)
@@ -105,16 +105,16 @@ namespace ESMERALDA
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
             Project theProject = (Project)base.GetSessionValue("WorkingProject");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            working.AcquisitionDescription = this.txtDataset_Acquisition.Text;
-            working.Description = this.txtDataset_Description.Text;
-            working.Name = this.txtDataset_Name.Text;
-            working.ProcessingDescription = this.txtDataset_Processing.Text;
-            working.BriefDescription = this.txtDataset_ShortDescription.Text;
-            working.URL = this.txtDataset_URL.Text;
+            working.SetMetadataValue("acqdesc", this.txtDataset_Acquisition.Text);
+            working.SetMetadataValue("abstract", this.txtDataset_Description.Text);
+            working.SetMetadataValue("title", this.txtDataset_Name.Text);
+            working.SetMetadataValue("procdesc", this.txtDataset_Processing.Text);
+            working.SetMetadataValue("purpose", this.txtDataset_ShortDescription.Text);
+            working.SetMetadataValue("url", this.txtDataset_URL.Text);
             working.SQLName = this.txtDataset_TableName.Text;
             working.ParentProject = theProject;
             char[] delim = new char[] { ',' };
-            working.Keywords.Clear();
+            working.ClearMetadataValue("keyword");
             if (!string.IsNullOrEmpty(this.txtDataset_Keywords.Text))
             {
                 string[] tokens = this.txtDataset_Keywords.Text.Split(delim);
@@ -125,7 +125,7 @@ namespace ESMERALDA
                         string s2 = s.Trim();
                         if (!string.IsNullOrEmpty(s2))
                         {
-                            working.Keywords.Add(s2);
+                            working.AddMetadataValue("keyword", s2);
                         }
                     }
                 }
@@ -145,14 +145,14 @@ namespace ESMERALDA
                 working = new Program();
             }
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            working.program_name = this.txtProgram_Name.Text;
-            working.acronym = this.txtProgram_Acronym.Text;
-            working.description = this.txtProgram_Description.Text;
-            working.logo_url = this.txtProgram_LogoURL.Text;
-            working.small_logo_url = this.txtProgram_SmallLogoURL.Text;
-            working.program_url = this.txtProgram_URL.Text;
-            working.start_date = this.controlStartDate.SelectedDate;
-            working.end_date = this.controlEndDate.SelectedDate;
+            working.SetMetadataValue("title", this.txtProgram_Name.Text);
+            working.SetMetadataValue("acronym", this.txtProgram_Acronym.Text);
+            working.SetMetadataValue("description", this.txtProgram_Description.Text);
+            working.SetMetadataValue("logourl", this.txtProgram_LogoURL.Text);
+            working.SetMetadataValue("small_logo_url", this.txtProgram_SmallLogoURL.Text);
+            working.SetMetadataValue("url", this.txtProgram_URL.Text);
+            working.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
+            working.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
             working.database_name = this.txtProgram_DatabaseName.Text;
             if (working.Owner == null)
             {
@@ -199,11 +199,11 @@ namespace ESMERALDA
                     base.ClientScript.RegisterStartupScript(base.GetType(), "MetricInit", "<script language='JavaScript'>populateMetrics('" + working.Header[i].FieldMetric.ID.ToString() + "');</script>");
                     this.txtRowSourceColumn.Text = ((Field)working.Header[i]).SourceColumnName;
                     this.txtRowSQLColumn.Text = working.Header[i].SQLColumnName;
-                    this.txtRowInstrument.Text = ((Field)working.Header[i]).Metadata.instrument;
-                    this.txtRowObservation.Text = ((Field)working.Header[i]).Metadata.observation_methodology;
-                    this.txtRowAnalysis.Text = ((Field)working.Header[i]).Metadata.analysis_methodology;
-                    this.txtRowProcessing.Text = ((Field)working.Header[i]).Metadata.processing_methodology;
-                    this.txtRowCitations.Text = ((Field)working.Header[i]).Metadata.description;
+                    this.txtRowInstrument.Text = ((Field)working.Header[i]).GetMetadataValue("instrument");
+                    this.txtRowObservation.Text = ((Field)working.Header[i]).GetMetadataValue("observation_methodology");
+                    this.txtRowAnalysis.Text = ((Field)working.Header[i]).GetMetadataValue("analysis_methodology");
+                    this.txtRowProcessing.Text = ((Field)working.Header[i]).GetMetadataValue("processing_methodology");
+                    this.txtRowCitations.Text = ((Field)working.Header[i]).GetMetadataValue("description");
                     this.tblSpecification.Rows.Add(editrow);
                     continue;
                 }
@@ -235,27 +235,27 @@ namespace ESMERALDA
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = ((Field)working.Header[i]).Metadata.instrument
+                    Text = ((Field)working.Header[i]).GetMetadataValue("instrument")
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = ((Field)working.Header[i]).Metadata.observation_methodology
+                    Text = ((Field)working.Header[i]).GetMetadataValue("observation_methodology")
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = ((Field)working.Header[i]).Metadata.analysis_methodology
+                    Text = ((Field)working.Header[i]).GetMetadataValue("analysis_methodology")
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = ((Field)working.Header[i]).Metadata.processing_methodology
+                    Text = ((Field)working.Header[i]).GetMetadataValue("processing_methodology")
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = ((Field)working.Header[i]).Metadata.description
+                    Text = ((Field)working.Header[i]).GetMetadataValue("description")
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell();
@@ -317,20 +317,21 @@ namespace ESMERALDA
         protected void PopulateDatasetMetadataFields(SqlConnection conn, Dataset working)
         {
             DateTime starttime = DateTime.Now;
-            this.txtDataset_Acquisition.Text = working.AcquisitionDescription;
-            this.txtDataset_Description.Text = working.Description;
-            this.txtDataset_Name.Text = working.Name;
-            this.txtDataset_Processing.Text = working.ProcessingDescription;
-            this.txtDataset_ShortDescription.Text = working.BriefDescription;
-            this.txtDataset_URL.Text = working.URL;
+            this.txtDataset_Acquisition.Text = working.GetMetadataValue("acqdesc");
+            this.txtDataset_Description.Text = working.GetMetadataValue("abstract");
+            this.txtDataset_Name.Text = working.GetMetadataValue("title");
+            this.txtDataset_Processing.Text = working.GetMetadataValue("procdesc");
+            this.txtDataset_ShortDescription.Text = working.GetMetadataValue("purpose");
+            this.txtDataset_URL.Text = working.GetMetadataValue("url");
             this.txtDataset_ID.Text = working.ID.ToString();
             string keywordstring = string.Empty;
-            if (working.Keywords.Count > 0)
+            List<string> keywords = working.GetMetadataValueArray("keyword");
+            if (keywords.Count > 0)
             {
-                keywordstring = working.Keywords[0];
-                for (int i = 1; i < working.Keywords.Count; i++)
+                keywordstring = keywords[0];
+                for (int i = 1; i < keywords.Count; i++)
                 {
-                    keywordstring = keywordstring + ", " + working.Keywords[i];
+                    keywordstring = keywordstring + ", " + keywords[i];
                 }
             }
             this.txtDataset_Keywords.Text = keywordstring;
@@ -385,40 +386,40 @@ namespace ESMERALDA
 
         protected void PopulateProgramFields(SqlConnection conn, Program working)
         {
-            this.txtProgram_Name.Text = working.program_name;
-            this.txtProgram_Acronym.Text = working.acronym;
-            this.txtProgram_Description.Text = working.description;
-            this.txtProgram_LogoURL.Text = working.logo_url;
-            this.txtProgram_SmallLogoURL.Text = working.small_logo_url;
-            this.txtProgram_URL.Text = working.program_url;
+            this.txtProgram_Name.Text = working.GetMetadataValue("title");
+            this.txtProgram_Acronym.Text = working.GetMetadataValue("acronym");
+            this.txtProgram_Description.Text = working.GetMetadataValue("description");
+            this.txtProgram_LogoURL.Text = working.GetMetadataValue("logourl");
+            this.txtProgram_SmallLogoURL.Text = working.GetMetadataValue("small_logo_url");
+            this.txtProgram_URL.Text = working.GetMetadataValue("url");
             this.txtProgram_DatabaseName.Text = working.database_name;
-            if (working.start_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(working.GetMetadataValue("startdate")))
             {
-                this.controlStartDate.SelectedDate = working.start_date;
+                this.controlStartDate.SelectedDate = DateTime.Parse(working.GetMetadataValue("startdate"));
             }
-            if (working.end_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(working.GetMetadataValue("enddate")))
             {
-                this.controlEndDate.SelectedDate = working.end_date;
+                this.controlEndDate.SelectedDate = DateTime.Parse(working.GetMetadataValue("enddate"));
             }
             this.txtProgram_ID.Text = working.ID.ToString();
         }
 
         protected void PopulateProjectFields(SqlConnection conn, Project theProject)
         {
-            this.txtProject_Name.Text = theProject.project_name;
-            this.txtProject_Acronym.Text = theProject.acronym;
-            this.txtProject_Description.Text = theProject.description;
-            this.txtProject_LogoURL.Text = theProject.logo_url;
+            this.txtProject_Name.Text = theProject.GetMetadataValue("title");
+            this.txtProject_Acronym.Text = theProject.GetMetadataValue("acronym");
+            this.txtProject_Description.Text = theProject.GetMetadataValue("description");
+            this.txtProject_LogoURL.Text = theProject.GetMetadataValue("logourl");
             this.txtProject_DatabaseName.Text = theProject.override_database_name;
-            this.txtProject_SmallLogoURL.Text = theProject.small_logo_url;
-            this.txtProject_URL.Text = theProject.project_url;
-            if (theProject.start_date > DateTime.MinValue)
+            this.txtProject_SmallLogoURL.Text = theProject.GetMetadataValue("small_logo_url");
+            this.txtProject_URL.Text = theProject.GetMetadataValue("url");
+            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("startdate")))
             {
-                this.projectStartDate.SelectedDate = theProject.start_date;
+                this.projectStartDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("startdate"));
             }
-            if (theProject.end_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("enddate")))
             {
-                this.projectEndDate.SelectedDate = theProject.end_date;
+                this.projectEndDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("enddate"));
             }
             this.txtProject_ID.Text = theProject.ID.ToString();
         }
@@ -468,6 +469,46 @@ namespace ESMERALDA
             }
             this.PopulateProjectFields(conn, theProject);
             base.SetSessionValue("WorkingProject", theProject);
+            this.PopulateFields(conn, -1);
+            conn.Close();
+        }
+
+        protected void txtDataset_TableName_TextChanged(object sender, EventArgs e)
+        {
+            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+            if (working == null)
+            {
+                working = new Dataset();
+            }
+            Project theProject = (Project)base.GetSessionValue("WorkingProject");
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            working.SetMetadataValue("acqdesc", this.txtDataset_Acquisition.Text);
+            working.SetMetadataValue("abstract", this.txtDataset_Description.Text);
+            working.SetMetadataValue("title", this.txtDataset_Name.Text);
+            working.SetMetadataValue("procdesc", this.txtDataset_Processing.Text);
+            working.SetMetadataValue("purpose", this.txtDataset_ShortDescription.Text);
+            working.SetMetadataValue("url", this.txtDataset_URL.Text);
+            working.SQLName = this.txtDataset_TableName.Text;
+            working.ParentProject = theProject;
+            char[] delim = new char[] { ',' };
+            working.ClearMetadataValue("keyword");
+            if (!string.IsNullOrEmpty(this.txtDataset_Keywords.Text))
+            {
+                string[] tokens = this.txtDataset_Keywords.Text.Split(delim);
+                if (tokens.Length > 0)
+                {
+                    foreach (string s in tokens)
+                    {
+                        string s2 = s.Trim();
+                        if (!string.IsNullOrEmpty(s2))
+                        {
+                            working.AddMetadataValue("keyword", s2);
+                        }
+                    }
+                }
+            }
+            working.AutopopulateFields(Metrics);
+            base.SetSessionValue("WorkingDataSet", working);
             this.PopulateFields(conn, -1);
             conn.Close();
         }

@@ -25,13 +25,15 @@
             shapes = new Array();
             var myLatLng = new google.maps.LatLng(24.886436490787712, -70.2685546875);
             var zoomval = 1;
+            var tokens = null;
+            var subtokens = null;
             var el = document.getElementById('mapZoom');
             if (el.value && el.value.length > 0) {
                 zoomval = parseInt(el.value);
             }
             el = document.getElementById('mapCenter');
             if (el.value && el.value.length > 0) {
-                var tokens = el.value.split(",");
+                tokens = el.value.split(",");
                 myLatLng = new google.maps.LatLng(parseFloat(tokens[0]), parseFloat(tokens[1]));
             }
             var mapOptions = {
@@ -58,7 +60,7 @@
             drawingManager.setMap(map);
             var polystring = document.getElementById("searchCoords").value;
             if (polystring && polystring.length > 0) {
-                var subtokens = polystring.split(" ");
+                subtokens = polystring.split(" ");
                 var bermudaTriangle;
                 // Construct the polygon
                 bermudaTriangle = new google.maps.Rectangle({
@@ -78,8 +80,8 @@
                 var setlines = datasets.split("|");
                 var i = 0;
                 for (i = 0; i < setlines.length; i++) {
-                    var tokens = setlines[i].split("~");
-                    var subtokens = tokens[3].split(";");
+                    tokens = setlines[i].split("~");
+                    subtokens = tokens[3].split(";");
                     var j = 0;
                     var latLngBound = new Array();
                     for (j = 0; j < subtokens.length; j++) {
@@ -138,7 +140,7 @@
                 <h3>
                     Keyword Search</h3>
                 <p>
-                    Search for datasets by keyword (searches metadata and field names):</p>
+                    Search for datasets by keyword (searches metadata and field names).  Type in your keywords separated by spaces.</p>
                 Enter your keywords:
                 <asp:TextBox ID="txtSearchByKeyword" runat="server" Width="469px"></asp:TextBox>
                 <asp:LinkButton ID="btnSearchByKeyword" runat="server">Search</asp:LinkButton>
@@ -148,6 +150,7 @@
             <div id="searchgeospatial">
                 <h3>
                     Geospatial Search</h3>
+                    <p>If you would like to limit your search to a specific geographic area, use the rectangle tool in the map below to draw the bounds of your search area.  You can also click on datasets below to open them.</p>
                 <div id="map_canvas" style="width: 600px; height: 600px">
                 </div>
                 <asp:HiddenField ID="mapdatasets" runat="server" />

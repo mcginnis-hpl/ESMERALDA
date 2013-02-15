@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="AdminPage.aspx.cs" Inherits="ESMERALDA.AdminPage" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="AdminPage.aspx.cs" Inherits="ESMERALDA.AdminPage" EnableEventValidation="false" %>
 
 <%@ Register Assembly="SlimeeLibrary" Namespace="SlimeeLibrary" TagPrefix="cc1" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -6,7 +6,6 @@
 <head id="Head1" runat="server">
     <title>Admin Page</title>
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
-    <script src="jquery-1.4.2.min.js" type="text/javascript" language="javascript"></script>
     <script src="scripts/esmeralda.js" type="text/javascript" language="javascript"></script>
     <script type="text/javascript" language="javascript">
         function populateMetrics(input_value) {
@@ -355,7 +354,8 @@
                             Table name:
                         </td>
                         <td>
-                            <asp:TextBox ID="txtDataset_TableName" runat="server"></asp:TextBox>
+                            <asp:TextBox ID="txtDataset_TableName" runat="server" 
+                                ontextchanged="txtDataset_TableName_TextChanged" AutoPostBack="true"></asp:TextBox>
                         </td>
                     </tr>
                 </table>

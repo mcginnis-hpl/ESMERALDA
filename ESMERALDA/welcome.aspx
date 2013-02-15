@@ -14,10 +14,10 @@
     <div id="pagecontent">
     <p>If you are looking for the Weather data, <a href='http://10.1.13.205:88/HPLWeatherData.aspx' target="_blank">click here.</a></p>
     <h3>Welcome!</h3>
-    <p>Welcome to ESMERALDA, the Environmental Science Metadata-Enhanced Repository for Analysis, Lookup, and Data Archiving.  This application is intended to help you find the data you're lookign for,
+    <p>Welcome to ESMERALDA, the Environmental Science Metadata-Enhanced Repository for Analysis, Lookup, and Data Archiving.  This application is intended to help you find the data you're looking for,
     share data with collaborators, and safely backup your datasets.</p>
-    <p>To begin finding data, click the "Search" tab to search for data by keyword, or the "Browse" tab to see all of the programs available in the database.</p>
-    <p>To save your data, select one of the current programs from the menu on the left, or create a new program for your data.</p>
+    <p>To begin finding data, click the "Search" tab to search for data by keyword, or the "Browse" tab to see all of the programs available in the database.  You do not need a login to view or download data.</p>
+    <p>To upload data, you will require a login.  If you have one, please click the "Login" tab at the top of the page.  If you do not, <a href='mailto:smcginnis@umces.edu??subject=ESMERALDA Account Request'>please click here to request one.</a>  To save your data, select one of the current programs from the menu on the left, or create a new program for your data.</p>
     <div id="adminLink" runat="server"><a href="AdminPage.aspx">Admin Page</a></div>
     </div>
     </div>

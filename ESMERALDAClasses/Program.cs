@@ -6,19 +6,11 @@
 
     public class Program : EsmeraldaEntity
     {
-        public string acronym = string.Empty;
         public string database_name;
-        public string description = string.Empty;
-        public DateTime end_date = DateTime.MinValue;
-        public string logo_url = string.Empty;
-        public string program_name = string.Empty;
-        public string program_url = string.Empty;
-        public string small_logo_url = string.Empty;
-        public DateTime start_date = DateTime.MinValue;
 
         protected void CreateDatabase(SqlConnection meta_conn)
         {
-            string prefix = Utils.CreateDBName(this.program_name);
+            string prefix = Utils.CreateDBName(this.GetMetadataValue("title"));
             this.database_name = prefix;
             int offset = 0;
             while (Utils.DBExists(database_name, meta_conn))
@@ -67,9 +59,7 @@
 
         public string GetMetadata()
         {
-            string ret = string.Empty;
-            ret = "<program>";
-            return ((((((((((ret + "<program_name>" + this.program_name + "</program_name>") + "<acronym>" + this.acronym + "</acronym>") + "<program_url>" + this.program_url + "</program_url>") + "<description>" + this.description + "</description>") + "<start_date>" + this.start_date.ToShortDateString() + "</start_date>") + "<end_date>" + this.end_date.ToShortDateString() + "</end_date>") + "<logo_url>" + this.logo_url + "</logo_url>") + "<small_logo_url>" + this.small_logo_url + "</small_logo_url>") + "<database_name>" + this.database_name + "</database_name>") + "</program>");
+            return string.Empty;
         }
 
         public override void Load(SqlConnection conn)
@@ -77,7 +67,7 @@
             SqlCommand query = new SqlCommand {
                 Connection = conn,
                 CommandType = CommandType.StoredProcedure,
-                CommandText = "sp_LoadProgram",
+                CommandText = "sp_ESMERALDA_LoadProgram",
                 CommandTimeout = 60
             };
             query.Parameters.Add(new SqlParameter("@inprogramid", ID));
@@ -86,38 +76,6 @@
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("program_id")))
                 {
-                    if (!reader.IsDBNull(reader.GetOrdinal("program_name")))
-                    {
-                        program_name = reader["program_name"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("acronym")))
-                    {
-                        acronym = reader["acronym"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("description")))
-                    {
-                        description = reader["description"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("program_url")))
-                    {
-                        program_url = reader["program_url"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("start_date")))
-                    {
-                        start_date = DateTime.Parse(reader["start_date"].ToString());
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("end_date")))
-                    {
-                        end_date = DateTime.Parse(reader["end_date"].ToString());
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("logo_url")))
-                    {
-                        logo_url = reader["logo_url"].ToString();
-                    }
-                    if (!reader.IsDBNull(reader.GetOrdinal("small_logo_url")))
-                    {
-                        small_logo_url = reader["small_logo_url"].ToString();
-                    }
                     if (!reader.IsDBNull(reader.GetOrdinal("database_name")))
                     {
                         database_name = reader["database_name"].ToString();
@@ -140,24 +98,10 @@
                 this.CreateDatabase(conn);
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteProgram";
+            query.CommandText = "sp_ESMERALDA_WriteProgram";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inprogram_id", base.ID));
-            query.Parameters.Add(new SqlParameter("@inprogram_name", this.program_name));
-            query.Parameters.Add(new SqlParameter("@inacronym", this.acronym));
-            query.Parameters.Add(new SqlParameter("@indescription", this.description));
-            query.Parameters.Add(new SqlParameter("@inprogram_url", this.program_url));
-            if (this.start_date > DateTime.MinValue)
-            {
-                query.Parameters.Add(new SqlParameter("@instart_date", this.start_date));
-            }
-            if (this.end_date > DateTime.MinValue)
-            {
-                query.Parameters.Add(new SqlParameter("@inend_date", this.end_date));
-            }
-            query.Parameters.Add(new SqlParameter("@inlogo_url", this.logo_url));
-            query.Parameters.Add(new SqlParameter("@insmall_logo_url", this.small_logo_url));
             query.Parameters.Add(new SqlParameter("@indatabase_name", this.database_name));
             query.ExecuteScalar();
             base.Save(conn);

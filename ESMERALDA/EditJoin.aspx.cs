@@ -56,13 +56,13 @@ namespace ESMERALDA
 
         protected void PopulateData(SqlConnection conn, ESMERALDAClasses.Join join)
         {
-            txtBriefDescription.Text = join.BriefDescription;
-            txtDescription.Text = join.Description;
-            txtViewName.Text = join.Name;
+            txtBriefDescription.Text = join.GetMetadataValue("purpose");
+            txtDescription.Text = join.GetMetadataValue("abstract");
+            txtViewName.Text = join.GetMetadataValue("title");
 
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.Text;
-            query.CommandText = "SELECT project_id, project_name, program_name FROM v_entityinfo_project ORDER BY program_name, project_name";
+            query.CommandText = "SELECT project_id, project_name, program_name FROM v_ESMERALDA_entityinfo_project ORDER BY program_name, project_name";
             query.CommandTimeout = 60;
             query.Connection = conn;
             SqlDataReader reader = query.ExecuteReader();
@@ -137,7 +137,7 @@ namespace ESMERALDA
             {
                 query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT query_id, query_name FROM v_entitydata_queries WHERE parent_id='" + proj1_guid.ToString() + "' ORDER BY query_name";
+                query.CommandText = "SELECT query_id, query_name FROM v_ESMERALDA_entitydata_queries WHERE parent_id='" + proj1_guid.ToString() + "' ORDER BY query_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 reader = query.ExecuteReader();
@@ -167,7 +167,7 @@ namespace ESMERALDA
             {
                 query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT query_id, query_name FROM v_entitydata_queries WHERE parent_id='" + proj2_guid.ToString() + "' ORDER BY query_name";
+                query.CommandText = "SELECT query_id, query_name FROM v_ESMERALDA_entitydata_queries WHERE parent_id='" + proj2_guid.ToString() + "' ORDER BY query_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 reader = query.ExecuteReader();
@@ -201,7 +201,7 @@ namespace ESMERALDA
                     field1_guid = join.JoinParameter1.ID;
                 query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT field_id, field_name FROM v_entitydata_fields WHERE query_id='" + ds1_guid.ToString() + "' ORDER BY field_name";
+                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds1_guid.ToString() + "' ORDER BY field_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 reader = query.ExecuteReader();
@@ -227,7 +227,7 @@ namespace ESMERALDA
                     field2_guid = join.JoinParameter2.ID;
                 query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT field_id, field_name FROM v_entitydata_fields WHERE query_id='" + ds2_guid.ToString() + "' ORDER BY field_name";
+                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds2_guid.ToString() + "' ORDER BY field_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 reader = query.ExecuteReader();
@@ -386,9 +386,9 @@ namespace ESMERALDA
             {
                 if (working != null)
                 {
-                    working.Name = this.txtViewName.Text;
-                    working.Description = this.txtDescription.Text;
-                    working.BriefDescription = this.txtBriefDescription.Text;                    
+                    working.SetMetadataValue("title", this.txtViewName.Text);
+                    working.SetMetadataValue("abstract", this.txtDescription.Text);
+                    working.SetMetadataValue("purpose", this.txtBriefDescription.Text);                    
                     working.Save(conn);
                 }
             }

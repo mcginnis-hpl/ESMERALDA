@@ -73,9 +73,9 @@ namespace ESMERALDA
             this.ParseValueString(this.viewValues.Value, working);
             if (working != null)
             {
-                working.Name = this.txtViewName.Text;
-                working.Description = this.txtDescription.Text;
-                working.BriefDescription = this.txtBriefDescription.Text;
+                working.SetMetadataValue("title", this.txtViewName.Text);
+                working.SetMetadataValue("abstract", this.txtDescription.Text);
+                working.SetMetadataValue("purpose", this.txtBriefDescription.Text);
                 SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 working.Save(conn);
                 conn.Close();
@@ -237,10 +237,12 @@ namespace ESMERALDA
                     lb.Click += new EventHandler(this.lb_Click);
                     this.commoncontrols.Controls.Add(lb);
                 }
+                metadata.Visible = true;
             }
             else
             {
                 this.commoncontrols.Controls.Clear();
+                metadata.Visible = false;
             }
         }
 
@@ -250,10 +252,32 @@ namespace ESMERALDA
             string tablename = working.SourceData.SQLName;
             SqlConnection dataconn = base.ConnectToDatabaseReadOnly(dbname);
             this.PopulateFilters(working);
+            /*DateTime start = DateTime.Now;
             this.PopulatePreviewData(dataconn, working);
+            System.Diagnostics.Debug.WriteLine("Old way: " + (DateTime.Now - start).TotalMilliseconds.ToString() + "ms");*/
+            ExperimentalPreviewData(working);
             this.PopulateLinks(working);
             dataconn.Close();
             this.querytag.InnerHtml = "Custom SQL Query (Source Data SQL Name: <a href='javascript:addField(\"" + working.SourceData.SQLName + "\")'>" + working.SourceData.SQLName + "</a>)";
+        }
+
+        protected void ExperimentalPreviewData(ESMERALDAClasses.View working)
+        {
+            // datapreview.Visible = false;
+            Guid uid = Guid.NewGuid();
+            SetSessionValue(uid.ToString(), working);
+            string url = "StreamData.aspx?VIEWID=" + uid.ToString();
+            int numrows = -1;
+            if (!string.IsNullOrEmpty(this.txtRowsToRetrieve.Text))
+            {
+                numrows = int.Parse(this.txtRowsToRetrieve.Text);
+                url += "&NUMROWS=" + numrows.ToString();
+            }
+            if (string.IsNullOrEmpty(txtQuery.Text))
+            {
+                txtQuery.Text = working.GetQuery(numrows);
+            }
+            testdatapreview.Attributes["src"] = url;
         }
 
         protected void PopulateFilters(ESMERALDAClasses.View working)
@@ -458,7 +482,7 @@ namespace ESMERALDA
                 string metadata_string = string.Empty;
                 if (((ViewCondition)working.Header[i]).SourceField != null)
                 {
-                    metadata_string = ((ViewCondition)working.Header[i]).SourceField.SQLColumnName + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.observation_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.instrument + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.analysis_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.processing_methodology + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.citations + "|" + ((ViewCondition)working.Header[i]).SourceField.Metadata.description;
+                    metadata_string = ((ViewCondition)working.Header[i]).SourceField.SQLColumnName + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("observation_methodology") + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("instrument") + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("analysis_methodology") + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("processing_methodology") + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("citations") + "|" + ((ViewCondition)working.Header[i]).SourceField.GetMetadataValue("description");
                     tc.Text = "<a id='metadata_" + i.ToString() + "' href='javascript:showMetadata(\"metadata_" + i.ToString() + "\"," + i.ToString() + ")'>Show Metadata</a>";
                 }
                 else
@@ -481,20 +505,29 @@ namespace ESMERALDA
 
         protected void PopulateLinks(ESMERALDAClasses.View working)
         {
-            this.spanDownloadCSV.InnerHtml = "<table border='0px'><tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "'>Download data as CSV</a></td>";
-            this.spanDownloadCSV.InnerHtml = this.spanDownloadCSV.InnerHtml + "<td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&METADATA=1'>Download metadata as XML</a></td></tr></table>";
+            this.spanDownloadCSV.InnerHtml = "<table class='savemenu'><tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "'>Download data as comma-delimited text</a></td><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&COMPRESS=1'>Compressed</a></td></tr>";
+            this.spanDownloadCSV.InnerHtml += "<tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&DELIM=TAB'>Download data as tab-delimited text</a></td><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&DELIM=TAB&COMPRESS=1'>Compressed</a></td></tr>";
+            this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&METADATA=1'>Download metadata as XML</a></td></tr>";
+            if (working.SourceData.GetType() == typeof(Dataset))
+            {
+                this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='http://hpldata.hpl.umces.edu/Default.aspx?DATASETID=" + working.SourceData.ID.ToString() + "'>Direct Link to Dataset</a></td></tr>";
+            }
+            this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='javascript:hideSaveDialog()'>Close this dialog</a></td></tr>";
+            this.spanDownloadCSV.InnerHtml += "</table>";
             base.SetSessionValue("View-" + working.ID.ToString(), working);
+            this.vizLink.InnerHtml = "<table border='0px'><tr><td><a href='javascript:showSaveDialog()' id='saveanchor'>Download this data</a></td><td><a href='VisualizeView.aspx?VIEWID=" + working.ID.ToString() + "' target='blank'>Visualize this data</a></td>";
+            // this.vizLink.InnerHtml = "<table border='0px'><tr><td><a href='VisualizeView.aspx?VIEWID=" + working.ID.ToString() + "'>Visualize this data</a></td>";
         }
 
         protected void PopulateMetadata(ESMERALDAClasses.View working)
         {
-            this.txtBriefDescription.Text = working.BriefDescription;
-            this.txtDescription.Text = working.Description;
-            this.txtViewName.Text = working.Name;
+            this.txtBriefDescription.Text = working.GetMetadataValue("purpose");
+            this.txtDescription.Text = working.GetMetadataValue("description");
+            this.txtViewName.Text = working.GetMetadataValue("title");
             this.lblViewSQLName.Text = working.SQLName;
         }
 
-        protected void PopulatePreviewData(SqlConnection conn, ESMERALDAClasses.View working)
+        /*protected void PopulatePreviewData(SqlConnection conn, ESMERALDAClasses.View working)
         {
             TableHeaderRow thr;
             SqlDataReader reader;
@@ -621,7 +654,7 @@ namespace ESMERALDA
                     reader.Close();
                 }
             }
-        }
+        }*/
 
         protected void txtRowsToRetrieve_TextChanged(object sender, EventArgs e)
         {

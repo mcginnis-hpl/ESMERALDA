@@ -20,7 +20,8 @@ namespace ESMERALDA
 
         protected void PopulatePrograms(SqlConnection conn)
         {
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT program_id, program_name, description FROM program_metadata ORDER BY program_name" }.ExecuteReader();
+            string cmd = "SELECT program_id, program_name, program_description FROM v_ESMERALDA_program_metadata ORDER BY program_name";
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
             while (reader.Read())
             {
                 TableRow tr = new TableRow();
@@ -31,7 +32,7 @@ namespace ESMERALDA
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = reader["description"].ToString()
+                    Text = reader["program_description"].ToString()
                 };
                 tr.Cells.Add(tc);
                 this.tblPrograms.Rows.Add(tr);

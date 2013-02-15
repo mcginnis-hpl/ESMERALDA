@@ -14,8 +14,8 @@ using HtmlAgilityPack;
 namespace ESMERALDA
 {
     public partial class Search : ESMERALDAPage
-    {
-        protected void DoSearch()
+    {        
+        protected void DoSearch_Experiment()
         {
             int i;
             string search_string = this.txtSearchByKeyword.Text.ToUpper();
@@ -23,47 +23,33 @@ namespace ESMERALDA
             string bounds_string = this.searchCoords.Value;
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             List<Guid> inbounds_datasetids = new List<Guid>();
-            List<string> fields = this.GetSearchFieldList(conn);
             string query = string.Empty;
             Dictionary<Guid, SearchResult> ret = new Dictionary<Guid, SearchResult>();
             bool has_bounds = !string.IsNullOrEmpty(bounds_string);
             char[] delim = new char[] { ' ' };
             string[] tokens = bounds_string.Split(delim);
-            query = "SELECT dataset_id, dataset_name, brief_description, dataset_description, project_id, project_name, field_name, latlon_sql_column_name, latlon_sql_table_name, latlon_metric_id, latlon_database_name, dataset_keyword, project_keyword FROM v_geospatial_search_data WHERE (IsPublic=1";
-            if (IsAuthenticated && CurrentUser != null)
+            if (terms.Count > 0)
             {
-                query += " OR CreatedBy='" + CurrentUser.ID + "'";
-            }
-            query += ")";
-            if (has_bounds)
-            {
-                query = query + " AND (min_lat IS NOT NULL";
-                query = query + " AND ((min_lat >= " + tokens[2] + " AND min_lat <= " + tokens[0] + ") OR (" + tokens[2] + " >= min_lat AND " + tokens[2] + " <= max_lat))";
-                query = query + " AND ((min_lon >= " + tokens[3] + " AND min_lon <= " + tokens[1] + ") OR (" + tokens[3] + " >= min_lon AND " + tokens[3] + " <= max_lon)))";
-            }
-            if (fields.Count > 0)
-            {
-                query = query + " AND (";
-                i = 0;
-                while (i < fields.Count)
+                query = "SELECT dataset_id, metadata_value FROM v_ESMERALDA_search_keywords WHERE (IsPublic=1";
+                if (IsAuthenticated && CurrentUser != null)
                 {
-                    string clause = string.Empty;
-                    if (i > 0)
-                    {
-                        clause = clause + " OR";
-                    }
-                    clause = clause + " (" + fields[i] + " LIKE '%" + terms[0] + "%'";
-                    for (int j = 1; j < terms.Count; j++)
-                    {
-                        clause = clause + " OR " + fields[i] + " LIKE '%" + terms[j] + "%'";
-                    }
-                    clause = clause + ")";
-                    query = query + clause;
-                    i++;
+                    query += " OR CreatedBy='" + CurrentUser.ID + "'";
                 }
-                query = query + ")";
+                query += ")";               
+                query = query + " AND (";
+                query = query + "metadata_value LIKE '%" + terms[0] + "%'";
+                for (int j = 1; j < terms.Count; j++)
+                {
+                    query += " OR metadata_value LIKE '%" + terms[j] + "%'";
+                }
+                query += ")";
             }
-            SqlCommand querycmd = new SqlCommand {
+            else
+            {
+                query = "SELECT DISTINCT dataset_id FROM v_ESMERALDA_search_keywords";
+            }
+            SqlCommand querycmd = new SqlCommand
+            {
                 Connection = conn,
                 CommandTimeout = 60,
                 CommandType = CommandType.Text,
@@ -72,7 +58,6 @@ namespace ESMERALDA
             SqlDataReader reader = querycmd.ExecuteReader();
             while (reader.Read())
             {
-                string kw;
                 SearchResult result = null;
                 Guid setid = new Guid(reader["dataset_id"].ToString());
                 if (ret.ContainsKey(setid))
@@ -85,102 +70,95 @@ namespace ESMERALDA
                     ret.Add(setid, result);
                 }
                 result.DatasetID = setid;
-                result.DatasetName = reader["dataset_name"].ToString();
-                result.DatasetBriefDescription = reader["brief_description"].ToString();
-                result.DatasetDescription = reader["dataset_description"].ToString();
-                result.ProjectID = new Guid(reader["project_id"].ToString());
-                result.ProjectName = reader["project_name"].ToString();
-                if (!reader.IsDBNull(reader.GetOrdinal("field_name")))
+                if (terms.Count > 0)
                 {
-                    kw = reader["field_name"].ToString();
-                    if (!result.MatchingFields.Contains(kw))
+                    string ds_value = reader["metadata_value"].ToString();
+                    if (!result.MatchingKeywords.Contains(ds_value))
                     {
-                        result.MatchingFields.Add(kw);
+                        foreach (string s in terms)
+                        {
+                            if (s.IndexOf(ds_value) >= 0)
+                            {
+                                result.MatchingKeywords.Add(ds_value);
+                                break;
+                            }
+                        }
                     }
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("dataset_keyword")))
-                {
-                    kw = reader["dataset_keyword"].ToString();
-                    if (!result.MatchingKeywords.Contains(kw))
-                    {
-                        result.MatchingKeywords.Add(kw);
-                    }
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("project_keyword")))
-                {
-                    kw = reader["project_keyword"].ToString();
-                    if (!result.MatchingKeywords.Contains(kw))
-                    {
-                        result.MatchingKeywords.Add(kw);
-                    }
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("latlon_sql_column_name")))
-                {
-                    result.latlon_sql_column_name.Add(reader["latlon_sql_column_name"].ToString());
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("latlon_sql_table_name")))
-                {
-                    result.latlon_sql_table_name = reader["latlon_sql_table_name"].ToString();
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("latlon_metric_id")))
-                {
-                    result.latlon_metric_id.Add(new Guid(reader["latlon_metric_id"].ToString()));
-                }
-                if (!reader.IsDBNull(reader.GetOrdinal("latlon_database_name")))
-                {
-                    result.latlon_database_name = reader["latlon_database_name"].ToString();
-                }
+                }               
             }
             reader.Close();
+            if (has_bounds && ret.Count > 0)
+            {
+                tokens = bounds_string.Split(delim);
+                query = "SELECT min_lat, min_lon, max_lat, max_lon, dataset_id FROM dataset_metadata WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
+                for(int j=1; j < ret.Count; j++)
+                {
+                    query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
+                }
+                query += ")";
+                query = query + " AND (min_lat IS NOT NULL";
+                query = query + " AND ((min_lat >= " + tokens[2] + " AND min_lat <= " + tokens[0] + ") OR (" + tokens[2] + " >= min_lat AND " + tokens[2] + " <= max_lat))";
+                query = query + " AND ((min_lon >= " + tokens[3] + " AND min_lon <= " + tokens[1] + ") OR (" + tokens[3] + " >= min_lon AND " + tokens[3] + " <= max_lon)))";
+                querycmd = new SqlCommand
+                {
+                    Connection = conn,
+                    CommandTimeout = 60,
+                    CommandType = CommandType.Text,
+                    CommandText = query
+                };
+                reader = querycmd.ExecuteReader();
+                List<SearchResult> keepers = new List<SearchResult>();
+                while (reader.Read())
+                {
+                    Guid setid = new Guid(reader["dataset_id"].ToString());
+                    if (!ret.ContainsKey(setid))
+                        continue;
+                    SearchResult sr = ret[setid];
+                    if(!keepers.Contains(sr))
+                        keepers.Add(sr);
+                }
+                reader.Close();
+                ret.Clear();
+                foreach (SearchResult sr in keepers)
+                {
+                    ret.Add(sr.DatasetID, sr);
+                }
+            }
             if (ret.Count > 0)
             {
-                Guid lat_guid = new Guid("c8a09a60-e42e-4d12-96ef-9f54a707b255");
-                Guid lon_guid = new Guid("22ddbcd9-e1ad-4348-823b-542e6577b735");
-                if (has_bounds)
+                query = "SELECT dataset_id, dataset_name, dataset_description, dataset_purpose, project_name, project_description, project_id, min_lat, min_lon, max_lat, max_lon FROM v_ESMERALDA_dataset_metadata WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
+                for (int j = 1; j < ret.Count; j++)
                 {
-                    foreach (Guid g in ret.Keys)
-                    {
-                        SearchResult gsr = ret[g];
-                        string lat_field = string.Empty;
-                        string lon_field = string.Empty;
-                        i = 0;
-                        while (i < gsr.latlon_metric_id.Count)
-                        {
-                            if (gsr.latlon_metric_id[i] == lat_guid)
-                            {
-                                lat_field = gsr.latlon_sql_column_name[i];
-                            }
-                            else if (gsr.latlon_metric_id[i] == lon_guid)
-                            {
-                                lon_field = gsr.latlon_sql_column_name[i];
-                            }
-                            i++;
-                        }
-                        string cmd = "SELECT TOP(1) " + lat_field + " AS Latitude, " + lon_field + " AS Longitude FROM " + gsr.latlon_database_name + ".dbo." + gsr.latlon_sql_table_name;
-                        cmd = cmd + " WHERE " + lat_field + " >= " + tokens[2];
-                        cmd = cmd + " AND " + lon_field + " >= " + tokens[3];
-                        cmd = cmd + " AND " + lat_field + " <= " + tokens[0];
-                        cmd = cmd + " AND " + lon_field + " <= " + tokens[1];
-                        reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
-                        while (reader.Read())
-                        {
-                            if (!reader.IsDBNull(0))
-                            {
-                                gsr.geo_match = true;
-                            }
-                        }
-                        reader.Close();
-                    }
-                    Dictionary<Guid, SearchResult> ret_tmp = new Dictionary<Guid, SearchResult>();
-                    foreach (Guid g in ret.Keys)
-                    {
-                        if (ret[g].geo_match)
-                        {
-                            ret_tmp.Add(g, ret[g]);
-                        }
-                    }
-                    ret = ret_tmp;
+                    query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
                 }
+                query += ")";
+                querycmd = new SqlCommand
+                {
+                    Connection = conn,
+                    CommandTimeout = 60,
+                    CommandType = CommandType.Text,
+                    CommandText = query
+                };
+                reader = querycmd.ExecuteReader();
+                List<SearchResult> keepers = new List<SearchResult>();
+                while (reader.Read())
+                {
+                    Guid setid = new Guid(reader["dataset_id"].ToString());
+                    SearchResult result = ret[setid];
+                    result.DatasetName = reader["dataset_name"].ToString();
+                    result.DatasetBriefDescription = reader["dataset_purpose"].ToString();
+                    result.DatasetDescription = reader["dataset_description"].ToString();
+                    result.ProjectID = new Guid(reader["project_id"].ToString());
+                    result.ProjectName = reader["project_name"].ToString();
+                    if (!reader.IsDBNull(reader.GetOrdinal("min_lon")))
+                    {
+                        result.min_lat = double.Parse(reader["min_lat"].ToString());
+                        result.min_lon = double.Parse(reader["min_lon"].ToString());
+                        result.max_lat = double.Parse(reader["max_lat"].ToString());
+                        result.max_lon = double.Parse(reader["max_lon"].ToString());
+                    }
+                }
+                reader.Close();
                 List<SearchResult> ranked_results = new List<SearchResult>();
                 foreach (Guid g in ret.Keys)
                 {
@@ -234,7 +212,7 @@ namespace ESMERALDA
                             }
                         }
                     }
-                    if (curr.Score != 0)
+                    if (curr.Score != 0 || terms.Count == 0)
                     {
                         bool added = false;
                         i = 0;
@@ -261,23 +239,28 @@ namespace ESMERALDA
                 else
                 {
                     TableHeaderRow thr = new TableHeaderRow();
-                    TableHeaderCell thc = new TableHeaderCell {
+                    TableHeaderCell thc = new TableHeaderCell
+                    {
                         Text = "Dataset"
                     };
                     thr.Cells.Add(thc);
-                    thc = new TableHeaderCell {
+                    thc = new TableHeaderCell
+                    {
                         Text = "Description"
                     };
                     thr.Cells.Add(thc);
-                    thc = new TableHeaderCell {
+                    thc = new TableHeaderCell
+                    {
                         Text = "Project"
                     };
                     thr.Cells.Add(thc);
-                    thc = new TableHeaderCell {
+                    thc = new TableHeaderCell
+                    {
                         Text = "Fields"
                     };
                     thr.Cells.Add(thc);
-                    thc = new TableHeaderCell {
+                    thc = new TableHeaderCell
+                    {
                         Text = "Score"
                     };
                     thr.Cells.Add(thc);
@@ -285,23 +268,28 @@ namespace ESMERALDA
                     for (i = 0; i < ranked_results.Count; i++)
                     {
                         TableRow tr = new TableRow();
-                        TableCell tc = new TableCell {
+                        TableCell tc = new TableCell
+                        {
                             Text = "<a href='ViewDataset.aspx?DATASETID=" + ranked_results[i].DatasetID.ToString() + "'>" + ranked_results[i].DatasetName + "</a>"
                         };
                         tr.Cells.Add(tc);
-                        tc = new TableCell {
+                        tc = new TableCell
+                        {
                             Text = ranked_results[i].DatasetBriefDescription
                         };
                         tr.Cells.Add(tc);
-                        tc = new TableCell {
+                        tc = new TableCell
+                        {
                             Text = "<a href='EditProject.aspx?PROJECTID=" + ranked_results[i].ProjectID.ToString() + "'>" + ranked_results[i].ProjectName + "</a>"
                         };
                         tr.Cells.Add(tc);
-                        tc = new TableCell {
+                        tc = new TableCell
+                        {
                             Text = ranked_results[i].DisplayFields
                         };
                         tr.Cells.Add(tc);
-                        tc = new TableCell {
+                        tc = new TableCell
+                        {
                             Text = ranked_results[i].Score.ToString()
                         };
                         tr.Cells.Add(tc);
@@ -344,7 +332,6 @@ namespace ESMERALDA
                 }
             }
         }
-
         protected List<SearchResult> SearchBCODMO(string searchstring)
         {
             List<SearchResult> ret = new List<SearchResult>();
@@ -512,102 +499,66 @@ namespace ESMERALDA
             }
             return ret;
         }
-
-        protected List<string> GetSearchFieldList(SqlConnection conn)
-        {
-            List<string> ret = new List<string>();
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT TOP(1) * FROM v_Search_Metadata" }.ExecuteReader();
-            while (reader.Read())
-            {
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    ret.Add(reader.GetName(i));
-                }
-            }
-            reader.Close();
-            return ret;
-        }
-
+        
         protected List<string> GetSearchTerms(string txt)
         {
             char[] delim = new char[] { ' ' };
             string[] tokens = txt.Split(delim);
             List<string> ret = new List<string>();
-            ret.AddRange(tokens);
+            foreach (string s in tokens)
+            {
+                if (string.IsNullOrEmpty(s))
+                    continue;
+                ret.AddRange(tokens);
+            }
             return ret;
         }
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            this.DoSearch();
+            // this.DoSearch();
+            this.DoSearch_Experiment();
             base.ClientScript.RegisterStartupScript(base.GetType(), "PopulateMap", "<script language='JavaScript'>initializeMap();</script>");
         }
 
         protected void PopulateMapView(List<SearchResult> results, SqlConnection conn)
         {
             string map_string = string.Empty;
-            Guid lat_guid = new Guid("c8a09a60-e42e-4d12-96ef-9f54a707b255");
-            Guid lon_guid = new Guid("22ddbcd9-e1ad-4348-823b-542e6577b735");
+            Random r = new Random();
             foreach (SearchResult gsr in results)
             {
+                if (double.IsNaN(gsr.min_lat))
+                    continue;
+                List<Point> points = new List<Point>();
+                points.Add(new Point(gsr.min_lat, gsr.min_lon));
+                points.Add(new Point(gsr.max_lat, gsr.min_lon));
+                points.Add(new Point(gsr.max_lat, gsr.max_lon));
+                points.Add(new Point(gsr.min_lat, gsr.max_lon));
+
                 string curr_hull = string.Empty;
-                string lat_field = string.Empty;
-                string lon_field = string.Empty;
                 int i = 0;
-                while (i < gsr.latlon_metric_id.Count)
+
+                Point[] bounding = points.ToArray<Point>();                
+                if (bounding.Length != 0)
                 {
-                    if (gsr.latlon_metric_id[i] == lat_guid)
+                    string url = "ViewDataset.aspx?DATASETID=" + gsr.DatasetID.ToString();
+                    string comment = "<strong>" + gsr.DatasetName + "</strong><br/><p>" + gsr.DatasetDescription + "</p>";
+                    int seed_int = r.Next(0, 0x1000000);
+                    System.Diagnostics.Debug.WriteLine("Seed: " + seed_int.ToString());
+                    string color = Utils.ToColor(seed_int);
+                    System.Diagnostics.Debug.WriteLine(color);
+                    curr_hull = string.Concat(new object[] { color, "~", comment, "~", url, "~", bounding[0].x, ",", bounding[0].y });
+                    for (i = 1; i < bounding.Length; i++)
                     {
-                        lat_field = gsr.latlon_sql_column_name[i];
+                        curr_hull = string.Concat(new object[] { curr_hull, ";", bounding[i].x, ",", bounding[i].y });
                     }
-                    else if (gsr.latlon_metric_id[i] == lon_guid)
+                    if (string.IsNullOrEmpty(map_string))
                     {
-                        lon_field = gsr.latlon_sql_column_name[i];
+                        map_string = curr_hull;
                     }
-                    i++;
-                }
-                if (((!string.IsNullOrEmpty(lat_field) && !string.IsNullOrEmpty(lon_field)) && !string.IsNullOrEmpty(gsr.latlon_database_name)) && !string.IsNullOrEmpty(gsr.latlon_sql_table_name))
-                {
-                    string cmd = "SELECT min_lat, min_lon, max_lat, max_lon FROM dataset_metadata WHERE dataset_id='" + gsr.DatasetID.ToString() + "'";
-                    SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
-                    List<Point> points = new List<Point>();
-                    double min_lat = 0.0;
-                    double min_lon = 0.0;
-                    double max_lat = 0.0;
-                    double max_lon = 0.0;
-                    while (reader.Read())
+                    else
                     {
-                        if (!reader.IsDBNull(0))
-                        {
-                            min_lat = double.Parse(reader[0].ToString());
-                            min_lon = double.Parse(reader[1].ToString());
-                            max_lat = double.Parse(reader[2].ToString());
-                            max_lon = double.Parse(reader[3].ToString());
-                            points.Add(new Point(double.Parse(reader[0].ToString()), double.Parse(reader[1].ToString())));
-                            points.Add(new Point(double.Parse(reader[2].ToString()), double.Parse(reader[1].ToString())));
-                            points.Add(new Point(double.Parse(reader[2].ToString()), double.Parse(reader[3].ToString())));
-                            points.Add(new Point(double.Parse(reader[0].ToString()), double.Parse(reader[3].ToString())));
-                        }
-                    }
-                    reader.Close();
-                    Point[] bounding = points.ToArray<Point>();
-                    if (bounding.Length != 0)
-                    {
-                        string url = "ViewDataset.aspx?DATASETID=" + gsr.DatasetID.ToString();
-                        string comment = "<strong>" + gsr.DatasetName + "</strong><br/><p>" + gsr.DatasetDescription + "</p>";
-                        curr_hull = string.Concat(new object[] { Utils.RandomColor(), "~", comment, "~", url, "~", bounding[0].x, ",", bounding[0].y });
-                        for (i = 1; i < bounding.Length; i++)
-                        {
-                            curr_hull = string.Concat(new object[] { curr_hull, ";", bounding[i].x, ",", bounding[i].y });
-                        }
-                        if (string.IsNullOrEmpty(map_string))
-                        {
-                            map_string = curr_hull;
-                        }
-                        else
-                        {
-                            map_string = map_string + "|" + curr_hull;
-                        }
+                        map_string = map_string + "|" + curr_hull;
                     }
                 }
             }

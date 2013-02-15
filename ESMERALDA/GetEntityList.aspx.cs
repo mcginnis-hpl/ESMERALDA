@@ -42,7 +42,7 @@ namespace ESMERALDA
             {
                 SqlCommand query = new SqlCommand();               
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT project_id, project_name, program_name FROM v_entityinfo_project ORDER BY program_name, project_name";
+                query.CommandText = "SELECT project_id, project_name, program_name FROM v_ESMERALDA_entityinfo_project ORDER BY program_name, project_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 SqlDataReader reader = query.ExecuteReader();
@@ -69,7 +69,7 @@ namespace ESMERALDA
             {
                 SqlCommand query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT query_id, query_name FROM v_entitydata_queries WHERE parent_id='" + parent_id.ToString() + "' ORDER BY query_name";
+                query.CommandText = "SELECT query_id, query_name FROM v_ESMERALDA_entitydata_queries WHERE parent_id='" + parent_id.ToString() + "' ORDER BY query_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 SqlDataReader reader = query.ExecuteReader();
@@ -94,7 +94,7 @@ namespace ESMERALDA
             {
                 SqlCommand query = new SqlCommand();
                 query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT field_id, field_name FROM v_entitydata_fields WHERE query_id='" + parent_id.ToString() + "' ORDER BY field_name";
+                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + parent_id.ToString() + "' ORDER BY field_name";
                 query.CommandTimeout = 60;
                 query.Connection = conn;
                 SqlDataReader reader = query.ExecuteReader();

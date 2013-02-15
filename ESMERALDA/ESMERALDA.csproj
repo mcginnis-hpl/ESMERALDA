@@ -38,6 +38,9 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\HTMLAgilityPack\Net40\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="Ionic.Zip">
+      <HintPath>..\..\DotNetZip\zip-v1.9\Release\Ionic.Zip.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -61,9 +64,11 @@
     <Content Include="css\style.css" />
     <Content Include="css\tooltip.css" />
     <Content Include="Default.aspx" />
+    <Content Include="DownloadLinkedFile.aspx" />
     <Content Include="DownloadViewasCSV.aspx" />
     <Content Include="EditDataSet.aspx" />
     <Content Include="EditJoin.aspx" />
+    <Content Include="EditLinkedFile.aspx" />
     <Content Include="EditPerson.aspx" />
     <Content Include="EditProgram.aspx" />
     <Content Include="EditProject.aspx" />
@@ -71,6 +76,7 @@
     <Content Include="GuidGenerator.aspx" />
     <Content Include="img\header_bg.gif" />
     <Content Include="img\loading.gif" />
+    <Content Include="img\Management_Studio.jpg" />
     <Content Include="img\menu_bg.gif" />
     <Content Include="img\side_bg.gif" />
     <Content Include="img\tab_bg.gif" />
@@ -88,7 +94,9 @@
     <Content Include="Scripts\Uploadify\uploadify.css" />
     <Content Include="Scripts\Uploadify\uploadify.swf" />
     <Content Include="Search.aspx" />
+    <Content Include="StreamData.aspx" />
     <Content Include="ViewDataset.aspx" />
+    <Content Include="VisualizeView.aspx" />
     <Content Include="welcome.aspx" />
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +121,13 @@
     <Compile Include="Default.aspx.designer.cs">
       <DependentUpon>Default.aspx</DependentUpon>
     </Compile>
+    <Compile Include="DownloadLinkedFile.aspx.cs">
+      <DependentUpon>DownloadLinkedFile.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DownloadLinkedFile.aspx.designer.cs">
+      <DependentUpon>DownloadLinkedFile.aspx</DependentUpon>
+    </Compile>
     <Compile Include="DownloadViewasCSV.aspx.cs">
       <DependentUpon>DownloadViewasCSV.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -133,6 +148,13 @@
     </Compile>
     <Compile Include="EditJoin.aspx.designer.cs">
       <DependentUpon>EditJoin.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="EditLinkedFile.aspx.cs">
+      <DependentUpon>EditLinkedFile.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="EditLinkedFile.aspx.designer.cs">
+      <DependentUpon>EditLinkedFile.aspx</DependentUpon>
     </Compile>
     <Compile Include="EditPerson.aspx.cs">
       <DependentUpon>EditPerson.aspx</DependentUpon>
@@ -180,12 +202,26 @@
     <Compile Include="Search.aspx.designer.cs">
       <DependentUpon>Search.aspx</DependentUpon>
     </Compile>
+    <Compile Include="StreamData.aspx.cs">
+      <DependentUpon>StreamData.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="StreamData.aspx.designer.cs">
+      <DependentUpon>StreamData.aspx</DependentUpon>
+    </Compile>
     <Compile Include="ViewDataset.aspx.cs">
       <DependentUpon>ViewDataset.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="ViewDataset.aspx.designer.cs">
       <DependentUpon>ViewDataset.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="VisualizeView.aspx.cs">
+      <DependentUpon>VisualizeView.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="VisualizeView.aspx.designer.cs">
+      <DependentUpon>VisualizeView.aspx</DependentUpon>
     </Compile>
     <Compile Include="welcome.aspx.cs">
       <DependentUpon>welcome.aspx</DependentUpon>
@@ -219,7 +255,7 @@
         <WebProjectProperties>
           <UseIIS>False</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>49214</DevelopmentServerPort>
+          <DevelopmentServerPort>54734</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
           <IISUrl>
           </IISUrl>

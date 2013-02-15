@@ -14,6 +14,7 @@
             <div id="login" runat="server">
                 <h3>
                     Existing Users</h3>
+                    <p>Type in your assigned username and password below.  If you do not have a username and password, <a href='mailto:smcginnis@umces.edu??subject=ESMERALDA Account Request'>please click here to request one.</a>  Keep in mind that you do not need a login to view or download data.</p>
                 <table border="0px">
                     <tr>
                         <td>
@@ -49,8 +50,7 @@
                 </table>
             </div>
             <div id="persondata" runat="server">
-                <h3>
-                    New User</h3>
+                <h3>User Information</h3>
                 <table border="1px">
                     <tr>
                         <td>
@@ -86,19 +86,14 @@
                         </td>
                         <td>
                             <asp:TextBox ID="txtFirstName" runat="server"></asp:TextBox>
-                        </td>
-                        <td>
-                            Middle Name:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtMiddleName" runat="server"></asp:TextBox>
-                        </td>
+                        </td>                        
                         <td>
                             Last Name:
                         </td>
                         <td>
                             <asp:TextBox ID="txtLastName" runat="server"></asp:TextBox>
                         </td>
+                        <td></td><td></td>
                     </tr>
                     <tr>
                         <td>
@@ -194,7 +189,10 @@
                         <td>
                             <asp:LinkButton ID="btnSave" runat="server" OnClick="btnSave_Click">Save Information</asp:LinkButton>
                         </td>
-                        <td colspan="5">
+                        <td>
+                            <asp:LinkButton ID="btnNewUser" runat="server" OnClick="btnNewUser_Click">Create a new User</asp:LinkButton>
+                        </td>
+                        <td colspan="4">
                         </td>
                     </tr>
                 </table>

@@ -10,6 +10,11 @@
         public string Abbrev = string.Empty;
         public Field.FieldType DataType = Field.FieldType.None;
         public static Guid JulianDayID = new Guid("01d8b4cb-e853-492e-9f4a-45c331923c0f");
+        public static Guid GenericDatetime = new Guid("CB35010B-1B49-40E9-BEE6-F5CC9400D175");
+        public static Guid GenericInt = new Guid("BBB6DFD7-AC14-4566-8737-5F4CF9EB0E6B");
+        public static Guid GenericDecimal = new Guid("930310CD-C8FC-4738-841B-ED422516ADF0");
+        public static Guid GenericText = new Guid("E903E4F4-3139-4179-A03F-559649F633D4");
+
         protected TimeZoneInfo myTimeZone = null;
         public string Name = string.Empty;
         public static List<ViewCondition> emptyConditions = new List<ViewCondition>();
@@ -44,7 +49,7 @@
             {
                 throw new Exception("SQL Server connection is not currently open.");
             }
-            SqlDataReader reader = new SqlCommand { CommandType = CommandType.StoredProcedure, CommandTimeout = 0x1770, Connection = conn, CommandText = "sp_GetAllMetrics" }.ExecuteReader();
+            SqlDataReader reader = new SqlCommand { CommandType = CommandType.StoredProcedure, CommandTimeout = 0x1770, Connection = conn, CommandText = "sp_ESMERALDA_GetAllMetrics" }.ExecuteReader();
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("metric_id")))
@@ -74,7 +79,7 @@
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 60,
                 Connection = conn,
-                CommandText = "sp_AddMetric"
+                CommandText = "sp_ESMERALDA_AddMetric"
             };
             query.Parameters.Add(new SqlParameter("@inName", this.Name));
             query.Parameters.Add(new SqlParameter("@inAbbrev", this.Abbrev));

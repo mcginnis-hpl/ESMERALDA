@@ -31,6 +31,15 @@ namespace ESMERALDA {
         protected global::System.Web.UI.HtmlControls.HtmlForm form1;
         
         /// <summary>
+        /// metadata control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl metadata;
+        
+        /// <summary>
         /// txtViewName control.
         /// </summary>
         /// <remarks>
@@ -202,13 +211,13 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.TextBox txtRowsToRetrieve;
         
         /// <summary>
-        /// tblPreviewData control.
+        /// testdatapreview control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Table tblPreviewData;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl testdatapreview;
         
         /// <summary>
         /// errormessage control.
@@ -227,6 +236,15 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.HtmlControls.HtmlGenericControl spanDownloadCSV;
+        
+        /// <summary>
+        /// vizLink control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl vizLink;
         
         /// <summary>
         /// viewValues control.

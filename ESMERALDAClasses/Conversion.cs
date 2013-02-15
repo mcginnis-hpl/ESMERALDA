@@ -19,7 +19,7 @@
             SqlCommand query = new SqlCommand {
                 Connection = conn,
                 CommandType = CommandType.StoredProcedure,
-                CommandText = "sp_LoadConversion",
+                CommandText = "sp_ESMERALDA_LoadConversion",
                 CommandTimeout = 60
             };
             query.Parameters.Add(new SqlParameter("@inID", inID));
@@ -59,7 +59,7 @@
 
         public static List<Conversion> LoadAll(SqlConnection conn, List<Metric> inMetrics)
         {
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandType = CommandType.StoredProcedure, CommandText = "sp_LoadAllConversions", CommandTimeout = 60 }.ExecuteReader();
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandType = CommandType.StoredProcedure, CommandText = "sp_ESMERALDA_LoadAllConversions", CommandTimeout = 60 }.ExecuteReader();
             Guid sID = Guid.Empty;
             Guid dID = Guid.Empty;
             List<Conversion> ret = new List<Conversion>();

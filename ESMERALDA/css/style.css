@@ -263,8 +263,81 @@ A:hover {
   color: #333333;
 }
 
-.previewTable td,th
+.previewTable th
 {
   font-family: verdana, arial, sans-serif;
-  font-size: 10px;    
+  font-size: 12px;    
+  border-right: 1px;
+}
+
+.previewTable
+{
+	font-family: verdana, arial, sans-serif;
+	font-size: 12px;
+	margin: 5px;
+	width: 100%;
+	text-align: left;
+	border-collapse: collapse;
+	border: 1px solid #039;
+	background-color: White
+}
+
+.previewTable th
+{
+	padding: 20px;
+	background-color: #CDCEFF;
+	font-weight: normal;
+	font-size: 12px;
+	color: #039;
+	border-right: 1px solid #039;
+	border-top: 1px solid ##039;
+	border-left: 1px solid #039;
+	border-bottom: 1px solid #039;
+}
+
+.previewTable td
+{
+	padding: 10px 10px;
+	font-size: 10px;
+	color: #000;
+	border-right: 1px solid #039;
+}
+
+.modifiedHeaderCell
+{
+    padding: 10px 10px;
+	font-size: 10px;
+	color: #000;
+	background-color: #C2F0C2;
+	border-right: 1px solid #039;
+}
+
+.savemenu {
+	border-width: 2px;
+	border-spacing: 2px;
+	border-style: outset;
+	border-color: black;
+	border-collapse: separate;
+	background-color: white;
+	width:100%;
+}
+.savemenu th {
+	border-width: 0px;
+	padding: 5px;
+	border-style: inset;
+	border-color: gray;
+	background-color: rgb(221, 221, 221);
+	-moz-border-radius: ;
+}
+.savemenu td {
+	border-width: 0px;
+	padding: 5px;
+	border-style: inset;
+	border-color: gray;
+	background-color: rgb(221, 221, 221);
+}
+
+.downloadmenu 
+{
+    display: none;
 }

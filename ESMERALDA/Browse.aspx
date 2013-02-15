@@ -13,6 +13,7 @@
         <div id="pagecontent">
             <h3>
                 Current Programs</h3>
+                <p>Click on one of the programs below to see all projects associated with that program.</p>
             <div id="programList">
                 <asp:Table ID="tblPrograms" runat="server">
                 </asp:Table>

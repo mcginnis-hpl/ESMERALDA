@@ -37,10 +37,6 @@
             {
                 ret = ret + this.FieldMetric.GetMetadata();
             }
-            if (this.Metadata != null)
-            {
-                ret = ret + this.Metadata.GetMetadata();
-            }
             return (ret + "</field>");
         }
 
@@ -86,7 +82,7 @@
                 this.SQLColumnName = Utils.CreateDBName(this.Name);
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteField";
+            query.CommandText = "sp_ESMERALDA_WriteField";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@indataset_id", datasetID));
@@ -104,13 +100,29 @@
                 query.Parameters.Add(new SqlParameter("@insubfield_id", this.Subfield.ID));
             }
             query.ExecuteNonQuery();
-            if (this.Metadata != null)
-            {
-                this.Metadata.Save(conn, base.ID);
-            }
             base.Save(conn);
         }
-        
+
+        public static string GetFieldTypeName(FieldType inType)
+        {
+            switch (inType)
+            {
+                case FieldType.DateTime:
+                    return "DateTime";
+                case FieldType.Decimal:
+                    return "Decimal";
+                case FieldType.Integer:
+                    return "Integer";
+                case FieldType.None:
+                    return "None";
+                case FieldType.Text:
+                    return "Text";
+                case FieldType.Time:
+                    return "Time";
+            }
+            return string.Empty;
+        }
+
         public enum FieldType
         {
             DateTime = 4,

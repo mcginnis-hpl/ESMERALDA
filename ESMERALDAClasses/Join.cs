@@ -34,8 +34,6 @@ namespace ESMERALDAClasses
             : base()
         {
             JoinedSourceData = null;
-            Description = string.Empty;
-            BriefDescription = string.Empty;
             JoinParameter1 = null;
             JoinParameter2 = null;
             ViewJoinType = JoinType.Inner;
@@ -64,9 +62,9 @@ namespace ESMERALDAClasses
         public override string GetMetadata()
         {
             string ret = "<data_view>";
-            ret += "<view_name>" + Name + "</view_name>";
-            ret += "<brief_description>" + BriefDescription + "</brief_description>";
-            ret += "<description>" + Description + "</description>";
+            ret += "<view_name>" + GetMetadataValue("title") + "</view_name>";
+            ret += "<brief_description>" + GetMetadataValue("purpose") + "</brief_description>";
+            ret += "<description>" + GetMetadataValue("abstract") + "</description>";
             ret += "<created_on>" + Timestamp.ToShortDateString() + "</created_on>";
             ret += "<joined_on>" + JoinParameter1.GetMetadata() + "</joined_on>";
             ret += "<joined_on>" + JoinParameter2.GetMetadata() + "</joined_on>";
@@ -169,7 +167,7 @@ namespace ESMERALDAClasses
                 ID = Guid.NewGuid();
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteJoin";
+            query.CommandText = "sp_ESMERALDA_WriteJoin";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inview_id", ID));
@@ -187,7 +185,7 @@ namespace ESMERALDAClasses
 
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadJoin";
+            query.CommandText = "sp_ESMERALDA_LoadJoin";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inID", viewID));

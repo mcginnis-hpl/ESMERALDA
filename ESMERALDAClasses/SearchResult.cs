@@ -23,6 +23,10 @@
         public string URL = string.Empty;
         public bool isExternal = false;
         public string SourceName = string.Empty;
+        public double min_lat = double.NaN;
+        public double min_lon = double.NaN;
+        public double max_lat = double.NaN;
+        public double max_lon = double.NaN;
     }
 }
 

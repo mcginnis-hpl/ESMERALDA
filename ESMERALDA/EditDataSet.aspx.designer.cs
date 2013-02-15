@@ -391,6 +391,24 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.TextBox txt_meta_description;
         
         /// <summary>
+        /// comboSpreadsheetSheets control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList comboSpreadsheetSheets;
+        
+        /// <summary>
+        /// btnSelectSheet control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnSelectSheet;
+        
+        /// <summary>
         /// txtNewMetricName control.
         /// </summary>
         /// <remarks>

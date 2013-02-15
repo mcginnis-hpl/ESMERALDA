@@ -132,10 +132,9 @@
             return "None";
         }
 
-        public static string RandomColor()
-        {
-            Random random = new Random();
-            return string.Format("#{0:X6}", random.Next(0x1000000));
+        public static string ToColor(int random)
+        {            
+            return string.Format("#{0:X6}", random);
         }
 
         public static string ToCSV(DataTable table)
@@ -165,7 +164,7 @@
             SqlCommand query = new SqlCommand {
                 Connection = conn,
                 CommandType = CommandType.StoredProcedure,
-                CommandText = "sp_LoadView",
+                CommandText = "sp_ESMERALDA_LoadView",
                 CommandTimeout = 60
             };
             query.Parameters.Add(new SqlParameter("@inID", inID));

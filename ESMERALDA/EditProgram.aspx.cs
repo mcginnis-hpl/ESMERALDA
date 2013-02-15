@@ -14,14 +14,14 @@ protected void btnSave_Click(object sender, EventArgs e)
         {
             Program working = (Program) base.GetSessionValue("WorkingProgram");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            working.program_name = this.txtMetadata_Name.Text;
-            working.acronym = this.txtMetadata_Acronym.Text;
-            working.description = this.txtMetadata_Description.Text;
-            working.logo_url = this.txtMetadata_LogoURL.Text;
-            working.small_logo_url = this.txtMetadata_SmallLogoURL.Text;
-            working.program_url = this.txtMetadata_URL.Text;
-            working.start_date = this.controlStartDate.SelectedDate;
-            working.end_date = this.controlEndDate.SelectedDate;
+            working.SetMetadataValue("title", this.txtMetadata_Name.Text);
+            working.SetMetadataValue("acronym", this.txtMetadata_Acronym.Text);
+            working.SetMetadataValue("description", this.txtMetadata_Description.Text);
+            working.SetMetadataValue("logourl", this.txtMetadata_LogoURL.Text);
+            working.SetMetadataValue("small_logo_url", this.txtMetadata_SmallLogoURL.Text);
+            working.SetMetadataValue("url", this.txtMetadata_URL.Text);
+            working.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
+            working.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
             if (working.Owner == null)
             {
                 working.Owner = base.CurrentUser;
@@ -64,20 +64,20 @@ protected void btnSave_Click(object sender, EventArgs e)
 
         protected void PopulateFields(SqlConnection conn, Program working)
         {
-            this.txtMetadata_Name.Text = working.program_name;
-            this.txtMetadata_Acronym.Text = working.acronym;
-            this.txtMetadata_Description.Text = working.description;
-            this.txtMetadata_LogoURL.Text = working.logo_url;
-            this.txtMetadata_SmallLogoURL.Text = working.small_logo_url;
-            this.txtMetadata_URL.Text = working.program_url;
+            this.txtMetadata_Name.Text = working.GetMetadataValue("title");
+            this.txtMetadata_Acronym.Text = working.GetMetadataValue("acronym");
+            this.txtMetadata_Description.Text = working.GetMetadataValue("description");
+            this.txtMetadata_LogoURL.Text = working.GetMetadataValue("logourl");
+            this.txtMetadata_SmallLogoURL.Text = working.GetMetadataValue("small_logo_url");
+            this.txtMetadata_URL.Text = working.GetMetadataValue("url");
             this.lblMetadata_DatabaseName.Text = working.database_name;
-            if (working.start_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(working.GetMetadataValue("startdate")))
             {
-                this.controlStartDate.SelectedDate = working.start_date;
+                this.controlStartDate.SelectedDate = DateTime.Parse(working.GetMetadataValue("startdate"));
             }
-            if (working.end_date > DateTime.MinValue)
+            if (!string.IsNullOrEmpty(working.GetMetadataValue("enddate")))
             {
-                this.controlEndDate.SelectedDate = working.end_date;
+                this.controlEndDate.SelectedDate = DateTime.Parse(working.GetMetadataValue("enddate"));
             }
             if (working.ID != Guid.Empty)
             {
@@ -113,21 +113,26 @@ protected void btnSave_Click(object sender, EventArgs e)
         protected void PopulateProjectList(SqlConnection conn, Program working)
         {
             string innerHTML = string.Empty;
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = "SELECT project_name, project_id, description FROM v_ProjectListByProgram WHERE program_id='" + working.ID.ToString() + "' ORDER BY project_name" }.ExecuteReader();
+            string cmd = "SELECT project_name, project_id, project_description FROM v_ESMERALDA_project_metadata WHERE program_id='" + working.ID.ToString() + "' ORDER BY project_name";
+            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
             while (reader.Read())
             {
                 if (string.IsNullOrEmpty(innerHTML))
                 {
                     innerHTML = "<h3>Program Projects</h3><br/><table border='0'>";
                 }
-                innerHTML = innerHTML + "<tr><td><a href='EditProject.aspx?PROJECTID=" + reader["project_id"].ToString() + "'>" + reader["project_name"].ToString() + "</a></td><td>" + reader["description"].ToString() + "</td></tr>";
+                innerHTML = innerHTML + "<tr><td><a href='EditProject.aspx?PROJECTID=" + reader["project_id"].ToString() + "'>" + reader["project_name"].ToString() + "</a></td><td>" + reader["project_description"].ToString() + "</td></tr>";
             }
             innerHTML = innerHTML + "</table>";
             this.projects.InnerHtml = innerHTML;
             reader.Close();
-            if (base.IsAuthenticated)
+            if (base.IsAuthenticated && working != null)
             {
-                this.addProjectControl.InnerHtml = "<a href='EditProject.aspx?PROGRAMID=" + working.ID.ToString() + "'>Add a project to this program.</a>";
+                Person p = CurrentUser;
+                if (UserIsAdministrator || (p != null && p.Owner != null && working.Owner.ID == p.ID))
+                {
+                    this.addProjectControl.InnerHtml = "<a href='EditProject.aspx?PROGRAMID=" + working.ID.ToString() + "'>Add a project to this program.</a>";
+                }
             }
         }
     }
