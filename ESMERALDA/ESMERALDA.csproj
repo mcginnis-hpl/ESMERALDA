@@ -79,10 +79,13 @@
     <Content Include="img\Management_Studio.jpg" />
     <Content Include="img\menu_bg.gif" />
     <Content Include="img\side_bg.gif" />
+    <Content Include="img\square-blue-left.gif" />
+    <Content Include="img\square-blue-right.gif" />
     <Content Include="img\tab_bg.gif" />
     <Content Include="img\tt_bottom.gif" />
     <Content Include="img\tt_left.gif" />
     <Content Include="img\tt_top.gif" />
+    <Content Include="PersonChooser.ascx" />
     <Content Include="Scripts\esmeralda.js" />
     <Content Include="Scripts\jquery-1.4.1-vsdoc.js" />
     <Content Include="Scripts\jquery-1.4.1.js" />
@@ -194,6 +197,13 @@
     <Compile Include="GuidGenerator.aspx.designer.cs">
       <DependentUpon>GuidGenerator.aspx</DependentUpon>
     </Compile>
+    <Compile Include="PersonChooser.ascx.cs">
+      <DependentUpon>PersonChooser.ascx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="PersonChooser.ascx.designer.cs">
+      <DependentUpon>PersonChooser.ascx</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Search.aspx.cs">
       <DependentUpon>Search.aspx</DependentUpon>
@@ -255,7 +265,7 @@
         <WebProjectProperties>
           <UseIIS>False</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>54734</DevelopmentServerPort>
+          <DevelopmentServerPort>49667</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
           <IISUrl>
           </IISUrl>

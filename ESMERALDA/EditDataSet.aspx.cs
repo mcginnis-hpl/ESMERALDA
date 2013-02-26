@@ -22,7 +22,7 @@ namespace ESMERALDA
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             Guid myId = (Guid)base.GetSessionValue("SessionID");
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
-            this.SaveMetadata(working);
+            this.SaveMetadata(conn, working);
             DataTable data = (DataTable)base.GetSessionValue("TemporaryData");
             DataTable newtable = working.BuildDataTable(data, -1);
             SqlConnection working_connection = base.ConnectToDatabase(working.ParentProject.database_name);
@@ -75,7 +75,7 @@ namespace ESMERALDA
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             List<Metric> current_metrics = Metric.LoadExistingMetrics(conn);
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
-            this.SaveMetadata(working);
+            this.SaveMetadata(conn, working);
             string data_config = this.tableSpecification.Value;
             char[] row_delim = new char[] { ';' };
             char[] col_delim = new char[] { '|' };
@@ -538,6 +538,7 @@ namespace ESMERALDA
                 }
             }
             reader.Close();
+            chooser.PopulateChooser(conn, working);
         }
 
         protected void PopulateMetrics(List<Metric> metrics)
@@ -937,7 +938,7 @@ namespace ESMERALDA
             Debug.WriteLine("Total upload time: " + ((int)debugtime.TotalMilliseconds).ToString() + "ms");
         }
 
-        protected void SaveMetadata(Dataset working)
+        protected void SaveMetadata(SqlConnection conn, Dataset working)
         {
             working.SetMetadataValue("acqdesc", this.txtMetadata_Acquisition.Text);
             working.SetMetadataValue("abstract", this.txtMetadata_Description.Text);
@@ -962,6 +963,18 @@ namespace ESMERALDA
                         }
                     }
                 }
+            }
+            List<Guid> personids = new List<Guid>();
+            List<string> rels = new List<string>();
+            chooser.GetSelectedItems(personids, rels);
+            working.Relationships.Clear();
+            for(int i=0; i < personids.Count; i++)
+            {
+                PersonRelationship pr = new PersonRelationship();
+                pr.person = new Person();
+                pr.person.Load(conn, personids[i]);
+                pr.relationship = rels[i];
+                working.Relationships.Add(pr);
             }
         }
 

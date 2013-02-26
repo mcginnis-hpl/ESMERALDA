@@ -375,10 +375,10 @@
                 <table border="0">
                     <tr>
                         <td>
-                            <asp:LinkButton ID="btnSubmitJoin" runat="server" OnClick="btnSubmitJoin_Click">Submit</asp:LinkButton>
+                            <asp:LinkButton ID="btnSubmitJoin" runat="server" OnClick="btnSubmitJoin_Click" CssClass="squarebutton"><span>Submit</span></asp:LinkButton>
                         </td>
                         <td style="padding-left: 20px">
-                            <asp:LinkButton ID="btnSaveJoin" runat="server" onclick="btnSaveJoin_Click">Save Join</asp:LinkButton>
+                            <asp:LinkButton ID="btnSaveJoin" runat="server" onclick="btnSaveJoin_Click" CssClass="squarebutton"><span>Save Join</span></asp:LinkButton>
                         </td>
                     </tr>
                 </table>

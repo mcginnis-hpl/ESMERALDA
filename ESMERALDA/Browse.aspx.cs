@@ -27,7 +27,8 @@ namespace ESMERALDA
                 TableRow tr = new TableRow();
                 TableCell tc = new TableCell
                 {
-                    Text = "<a href='EditProgram.aspx?PROGRAMID=" + reader["program_id"].ToString() + "'>" + reader["program_name"].ToString() + "</a>"
+                    Text = "<a href='EditProgram.aspx?PROGRAMID=" + reader["program_id"].ToString() + "'>" + reader["program_name"].ToString() + "</a>",
+                    Width = Unit.Percentage(30)
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell

@@ -400,9 +400,7 @@ namespace ESMERALDAClasses
                 query.Connection = dataconn;
                 query.CommandTimeout = 60;
                 query.CommandType = CommandType.Text;
-                string cmd = "SELECT MIN(" + lat_field + ") AS MinLatitude, MIN(" + lon_field + ") AS MinLongitude, MAX(" + lat_field + ") AS MaxLatitude, MAX(" + lon_field +
-
-") AS MaxLongitude FROM " + ParentProject.database_name + ".dbo." + SQLName;
+                string cmd = "SELECT MIN(" + lat_field + ") AS MinLatitude, MIN(" + lon_field + ") AS MinLongitude, MAX(" + lat_field + ") AS MaxLatitude, MAX(" + lon_field + ") AS MaxLongitude FROM " + ParentProject.database_name + ".dbo." + SQLName;
                 query.CommandText = cmd;
                 SqlDataReader reader = query.ExecuteReader();
                 while (reader.Read())
@@ -789,10 +787,10 @@ namespace ESMERALDAClasses
                             f.DBType = Field.FieldType.Decimal;
                             field_guid = Metric.GenericDecimal;
                         }
-                        else if (col_type == "varchar" || col_type == "nvarchar")
+                        else if (col_type == "varchar" || col_type == "nvarchar" || col_type == "uniqueidentifier")
                         {
                             f.DBType = Field.FieldType.Text;
-                            field_guid = Metric.GenericDecimal;
+                            field_guid = Metric.GenericText;
                         }
                         else if (col_type == "datetime")
                         {

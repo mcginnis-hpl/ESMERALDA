@@ -17,7 +17,7 @@
             <div id="programList">
                 <asp:Table ID="tblPrograms" runat="server">
                 </asp:Table>
-                <span><a href='EditProgram.aspx'>Create a New Program</a></span>
+                <a href='EditProgram.aspx' class="squarebutton"><span>Create a New Program</span></a>
             </div>
         </div>
     </div>

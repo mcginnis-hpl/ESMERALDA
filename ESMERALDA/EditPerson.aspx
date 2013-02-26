@@ -42,7 +42,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <asp:LinkButton ID="btnLogon" runat="server" OnClick="btnLogon_Click">Sign In</asp:LinkButton>
+                            <asp:LinkButton ID="btnLogon" runat="server" OnClick="btnLogon_Click" CssClass="squarebutton"><span>Sign In</span></asp:LinkButton>
                         </td>
                         <td>
                         </td>
@@ -184,18 +184,21 @@
                         <td colspan="6">
                             <asp:TextBox ID="txtComments" runat="server" Height="67px" TextMode="MultiLine" Width="700px"></asp:TextBox>
                         </td>
-                    </tr>
+                    </tr>                    
+                    
+                </table>
+                    <table class="inlinemenu">
                     <tr>
                         <td>
-                            <asp:LinkButton ID="btnSave" runat="server" OnClick="btnSave_Click">Save Information</asp:LinkButton>
+                            <asp:LinkButton ID="btnSave" runat="server" OnClick="btnSave_Click" CssClass="squarebutton"><span>Save Information</span></asp:LinkButton>
                         </td>
                         <td>
-                            <asp:LinkButton ID="btnNewUser" runat="server" OnClick="btnNewUser_Click">Create a new User</asp:LinkButton>
+                            <asp:LinkButton ID="btnNewUser" runat="server" onclick="btnNewUser_Click" CssClass="squarebutton"><span>Create a new User</span></asp:LinkButton>
                         </td>
                         <td colspan="4">
                         </td>
                     </tr>
-                </table>
+                    </table>
             </div>
         </div>
     </div>

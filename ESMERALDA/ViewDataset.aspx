@@ -208,14 +208,14 @@
             var el = document.getElementById("help");
             el.style.display = "";
             var linkel = document.getElementById("showhelplink");
-            linkel.innerHTML = "<a href='javascript:hideHelp()'>Hide help.</a>";
+            linkel.innerHTML = "<a class='squarebutton' href='javascript:hideHelp()'><span>Hide help.</span></a>";
         }
 
         function hideHelp() {
             var el = document.getElementById("help");
             el.style.display = "none";
             var linkel = document.getElementById("showhelplink");
-            linkel.innerHTML = "<a href='javascript:showHelp()'>Show help.</a>";
+            linkel.innerHTML = "<a class='squarebutton' href='javascript:showHelp()'><span>Show help.</span></a>";
         }
 
         function showSaveDialog() {
@@ -245,33 +245,37 @@
     <form id="form1" runat="server">
     <div id="page_wrapper">
         <div id="pagecontent">
-            <h4>View a Dataset</h4>
-            <span id="showhelplink"><a href='javascript:showHelp()'>Show help.</a></span>
-            <div id="help" style="display: none">
-                <p>
-                    On this page, you can do the following:</p>
-                <ul>
-                    <li>On this page, you can preview and filter a dataset. You do not need to give the
-                        view a name or a description if you intend to save the view (this functionality
-                        is for authenticated users only).</li>
-                    <li>To sort your data, select "Sort Ascending" or "Sort Descending" from the Filter
-                        Type dropdown beside the column you wish to sort.</li>
-                    <li>To filter your data, select "Filter" from the Filter Type dropdown, and enter your
-                        filter criteria in the "Filter Text" text box. Filter statements can use constants
-                        (e.g., "< 10") or dynamic values (e.g., "< [Dissolved Oxygen]"). You can also combine
-                        filter statements using "AND" or "OR" (e.g., "< 10 AND > 2"). To learn more about
-                        filter statements, <a href='FilterStatements.htm' target='_blank'>click here</a>.</li>
-                    <li>To apply a formula, select "Formula" from the Filter Type dropdown. You may then
-                        enter the formula in the "Filter Text" box. The formula should use the field name
-                        in brackets, e.g. "SIN([Frequency]) * COS([Amplitude]) + 1" where Amplitude and
-                        Frequency are field names.</li>
-                    <li>If you are familiar with SQL, you can also type your SQL query in the "Execute Query"
-                        box.</li>
-                    <li>Finally, you may change the number of rows to preview in the "Number of Rows to
-                        Preview" text box.</li>
-                    <li>To download you query, selected "Download as CSV" from the bottom of the page. Other
-                        data formats are coming!</li>
-                </ul>
+            <h4>
+                View a Dataset</h4>
+            <div class="clearfix">
+                <span id="showhelplink"><a class='squarebutton' href='javascript:showHelp()'><span>Show
+                    help.</span></a></span>
+                <div id="help" style="display: none">
+                    <p>
+                        On this page, you can do the following:</p>
+                    <ul>
+                        <li>On this page, you can preview and filter a dataset. You do not need to give the
+                            view a name or a description if you intend to save the view (this functionality
+                            is for authenticated users only).</li>
+                        <li>To sort your data, select "Sort Ascending" or "Sort Descending" from the Filter
+                            Type dropdown beside the column you wish to sort.</li>
+                        <li>To filter your data, select "Filter" from the Filter Type dropdown, and enter your
+                            filter criteria in the "Filter Text" text box. Filter statements can use constants
+                            (e.g., "< 10") or dynamic values (e.g., "< [Dissolved Oxygen]"). You can also combine
+                            filter statements using "AND" or "OR" (e.g., "< 10 AND > 2"). To learn more about
+                            filter statements, <a href='FilterStatements.htm' target='_blank'>click here</a>.</li>
+                        <li>To apply a formula, select "Formula" from the Filter Type dropdown. You may then
+                            enter the formula in the "Filter Text" box. The formula should use the field name
+                            in brackets, e.g. "SIN([Frequency]) * COS([Amplitude]) + 1" where Amplitude and
+                            Frequency are field names.</li>
+                        <li>If you are familiar with SQL, you can also type your SQL query in the "Execute Query"
+                            box.</li>
+                        <li>Finally, you may change the number of rows to preview in the "Number of Rows to
+                            Preview" text box.</li>
+                        <li>To download you query, selected "Download as CSV" from the bottom of the page. Other
+                            data formats are coming!</li>
+                    </ul>
+                </div>
             </div>
             <div id="metadata" runat="server">
                 <table border="0">
@@ -312,16 +316,16 @@
             <div id="filters">
                 <asp:Table ID="filterTable" runat="server">
                 </asp:Table>
-                <table border="0px">
-                    <tr>
-                        <td>
-                            <asp:LinkButton ID="btnAddColumn" runat="server" OnClick="btnAddColumn_Click">Add Derived Column</asp:LinkButton>
-                        </td>
-                        <td>
-                            <asp:LinkButton ID="btnUpdate" runat="server" OnClick="btnUpdate_Click">Update View</asp:LinkButton>
-                        </td>
-                    </tr>
-                </table>
+                <asp:Table ID="controlmenu" runat="server" border="0px" CssClass="inlinemenu">
+                    <asp:TableRow>
+                        <asp:TableCell>
+                            <asp:LinkButton ID="btnAddColumn" runat="server" OnClick="btnAddColumn_Click" CssClass="squarebutton"><span>Add Derived Column</span></asp:LinkButton>
+                        </asp:TableCell>
+                        <asp:TableCell>
+                            <asp:LinkButton ID="btnUpdate" runat="server" OnClick="btnUpdate_Click" CssClass="squarebutton"><span>Update View</span></asp:LinkButton>
+                        </asp:TableCell>
+                    </asp:TableRow>
+                </asp:Table>
             </div>
             <asp:HiddenField ID="fieldMetadata" runat="server" />
             <div id="fieldMetadataWindow" style="display: none; position: absolute; left: 0px;
@@ -377,7 +381,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <a href="javascript:cancelMetadata()">Close</a>
+                            <a class='squarebutton' href="javascript:cancelMetadata()"><span>Close</span></a>
                         </td>
                         <td>
                         </td>
@@ -385,25 +389,39 @@
                 </table>
             </div>
             <div id="query">
-                <span id="querytag" runat="server"></span>
-                <br />
-                <asp:TextBox ID="txtQuery" runat="server" Rows="6" TextMode="MultiLine" Width="619px"></asp:TextBox>
-                <br />
-                <asp:LinkButton ID="btnExecuteQuery" runat="server" OnClick="btnExecuteQuery_Click">Execute Query</asp:LinkButton>
+                <table border="0">
+                    <tr>
+                        <td colspan="2">
+                            <span id="querytag" runat="server"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <asp:TextBox ID="txtQuery" runat="server" Rows="6" TextMode="MultiLine" Width="619px"></asp:TextBox>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:Table ID="querycontrols" runat="server" CssClass="inlinemenu">
+                                <asp:TableRow>
+                                    <asp:TableCell>
+                                        Number of Rows to Preview:
+                                        <asp:TextBox ID="txtRowsToRetrieve" runat="server" OnTextChanged="txtRowsToRetrieve_TextChanged"></asp:TextBox></asp:TableCell>
+                                </asp:TableRow>
+                            </asp:Table>
+                        </td>
+                        <td>
+                            <asp:LinkButton ID="btnExecuteQuery" runat="server" OnClick="btnExecuteQuery_Click"
+                                CssClass="squarebutton"><span>Execute Query</span></asp:LinkButton>
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div id="commoncontrols" runat="server">
-            </div>
-            <div>
-                    Number of Rows to Preview:
-                    <asp:TextBox ID="txtRowsToRetrieve" runat="server" OnTextChanged="txtRowsToRetrieve_TextChanged"></asp:TextBox></div>
-            <iframe id="testdatapreview" runat="server" style="width:100%; height:480px; overflow:scroll">
-                
+            <iframe id="testdatapreview" runat="server" style="width: 100%; height: 480px; overflow: scroll">
             </iframe>
             <span id="errormessage" runat="server"></span>
             <div id="downloadcontrols" class="downloadmenu">
                 <span id="spanDownloadCSV" runat="server"></span>
-            </div>
-            <div id="vizLink" runat="server">
             </div>
             <asp:HiddenField ID="viewValues" runat="server" />
         </div>

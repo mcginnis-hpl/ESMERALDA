@@ -5,14 +5,15 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+using System.Collections.Generic;
 
 namespace ESMERALDA
 {
     public partial class EditProgram : ESMERALDAPage
     {
-protected void btnSave_Click(object sender, EventArgs e)
+        protected void btnSave_Click(object sender, EventArgs e)
         {
-            Program working = (Program) base.GetSessionValue("WorkingProgram");
+            Program working = (Program)base.GetSessionValue("WorkingProgram");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             working.SetMetadataValue("title", this.txtMetadata_Name.Text);
             working.SetMetadataValue("acronym", this.txtMetadata_Acronym.Text);
@@ -25,6 +26,19 @@ protected void btnSave_Click(object sender, EventArgs e)
             if (working.Owner == null)
             {
                 working.Owner = base.CurrentUser;
+            }
+            List<Guid> personids = new List<Guid>();
+            List<string> rels = new List<string>();
+
+            chooser.GetSelectedItems(personids, rels);
+            working.Relationships.Clear();
+            for (int i = 0; i < personids.Count; i++)
+            {
+                PersonRelationship pr = new PersonRelationship();
+                pr.person = new Person();
+                pr.person.Load(conn, personids[i]);
+                pr.relationship = rels[i];
+                working.Relationships.Add(pr);
             }
             working.Save(conn);
             this.lblProgramID.Text = working.ID.ToString();
@@ -84,6 +98,7 @@ protected void btnSave_Click(object sender, EventArgs e)
                 this.PopulateProjectList(conn, working);
             }
             this.lblProgramID.Text = working.ID.ToString();
+            chooser.PopulateChooser(conn, working);
             if (!base.IsAuthenticated)
             {
                 this.txtMetadata_Name.ReadOnly = true;
@@ -95,6 +110,7 @@ protected void btnSave_Click(object sender, EventArgs e)
                 this.btnSave.Visible = false;
                 this.controlStartDate.Enabled = false;
                 this.controlEndDate.Enabled = false;
+                chooser.ReadOnly = true;
             }
             else
             {
@@ -107,7 +123,9 @@ protected void btnSave_Click(object sender, EventArgs e)
                 this.btnSave.Visible = true;
                 this.controlStartDate.Enabled = true;
                 this.controlEndDate.Enabled = true;
+                chooser.ReadOnly = false;
             }
+            
         }
 
         protected void PopulateProjectList(SqlConnection conn, Program working)
@@ -131,7 +149,7 @@ protected void btnSave_Click(object sender, EventArgs e)
                 Person p = CurrentUser;
                 if (UserIsAdministrator || (p != null && p.Owner != null && working.Owner.ID == p.ID))
                 {
-                    this.addProjectControl.InnerHtml = "<a href='EditProject.aspx?PROGRAMID=" + working.ID.ToString() + "'>Add a project to this program.</a>";
+                    this.addProjectControl.InnerHtml = "<a class='squarebutton' href='EditProject.aspx?PROGRAMID=" + working.ID.ToString() + "'><span>Add a project to this program.</span></a>";
                 }
             }
         }

@@ -90,15 +90,22 @@ namespace ESMERALDA
             if (has_bounds && ret.Count > 0)
             {
                 tokens = bounds_string.Split(delim);
-                query = "SELECT min_lat, min_lon, max_lat, max_lon, dataset_id FROM dataset_metadata WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
+                query = "SELECT min_lat, min_lon, max_lat, max_lon, dataset_id FROM v_ESMERALDA_geospatial_search_data WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
                 for(int j=1; j < ret.Count; j++)
                 {
                     query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
                 }
                 query += ")";
-                query = query + " AND (min_lat IS NOT NULL";
-                query = query + " AND ((min_lat >= " + tokens[2] + " AND min_lat <= " + tokens[0] + ") OR (" + tokens[2] + " >= min_lat AND " + tokens[2] + " <= max_lat))";
-                query = query + " AND ((min_lon >= " + tokens[3] + " AND min_lon <= " + tokens[1] + ") OR (" + tokens[3] + " >= min_lon AND " + tokens[3] + " <= max_lon)))";
+                string max_lat = string.Format("{0:0.00000}", double.Parse(tokens[0]));
+                string max_lon = string.Format("{0:0.00000}", double.Parse(tokens[1]));
+                string min_lat = string.Format("{0:0.00000}", double.Parse(tokens[2]));
+                string min_lon = string.Format("{0:0.00000}", double.Parse(tokens[3]));
+                string cond1 = "(" + min_lon + " <= max_lon)";
+                string cond2 = "(" + max_lon + " >= min_lon)";
+                string cond3 = "(" + max_lat + " >= min_lat)";
+                string cond4 = "(" + min_lat + " <= max_lat)";
+                query = query + " AND (min_lat IS NOT NULL)";
+                query = query + " AND (" + cond1 + " AND " + cond2 + " AND " + cond3 + " AND " + cond4 + ")";
                 querycmd = new SqlCommand
                 {
                     Connection = conn,

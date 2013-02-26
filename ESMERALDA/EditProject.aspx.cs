@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+using System.Collections.Generic;
 
 namespace ESMERALDA
 {
@@ -25,6 +26,19 @@ namespace ESMERALDA
             if (theProject.Owner == null)
             {
                 theProject.Owner = base.CurrentUser;
+            }
+            List<Guid> personids = new List<Guid>();
+            List<string> rels = new List<string>();
+
+            chooser.GetSelectedItems(personids, rels);
+            theProject.Relationships.Clear();
+            for (int i = 0; i < personids.Count; i++)
+            {
+                PersonRelationship pr = new PersonRelationship();
+                pr.person = new Person();
+                pr.person.Load(conn, personids[i]);
+                pr.relationship = rels[i];
+                theProject.Relationships.Add(pr);
             }
             theProject.Save(conn);
             if (!string.IsNullOrEmpty(this.comboParentProgram.SelectedValue))
@@ -104,13 +118,13 @@ namespace ESMERALDA
             reader.Close();
             if (base.IsAuthenticated)
             {
-                string url = "<a href='EditDataSet.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a dataset to this project.</a>";
-                url += "<br/><a href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a join to this project.</a>";
+                string url = "<table border='0'><tr><td><a class='squarebutton' href='EditDataSet.aspx?PROJECTID=" + inProject.ID.ToString() + "'><span>Add a dataset to this project.</span></a></td>";
+                url += "<td><a class='squarebutton' href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'><span>Add a join to this project.</span></a></td></tr></table>";
                 this.addDatasetControl.InnerHtml = url;
             }
             else
-            {               
-                string url = "<a href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'>Add a join to this project.</a>";
+            {
+                string url = "<a class='squarebutton' href='EditJoin.aspx?PROJECTID=" + inProject.ID.ToString() + "'><span>Add a join to this project.</span></a>";
                 this.addDatasetControl.InnerHtml = url;
             }
         }
@@ -124,6 +138,7 @@ namespace ESMERALDA
             this.txtMetadata_SmallLogoURL.Text = theProject.GetMetadataValue("small_logo_url");
             this.txtMetadata_URL.Text = theProject.GetMetadataValue("url");
             this.txtMetadata_DatabaseName.Text = theProject.override_database_name;
+            this.lblMetadata_projectid.Text = theProject.ID.ToString();
             if (!string.IsNullOrEmpty(theProject.GetMetadataValue("startdate")))
             {
                 this.controlStartDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("startdate"));
@@ -138,6 +153,7 @@ namespace ESMERALDA
                 this.PopulateDatabaseList(conn, theProject);
                 this.PopulateViewList(conn, theProject);
             }
+            chooser.PopulateChooser(conn, theProject);
             if (!base.IsAuthenticated)
             {
                 this.txtMetadata_Name.ReadOnly = true;
@@ -149,6 +165,7 @@ namespace ESMERALDA
                 this.btn_SaveMetadata.Visible = false;
                 this.controlStartDate.Enabled = false;
                 this.controlEndDate.Enabled = false;
+                chooser.ReadOnly = true;
             }
             else
             {
@@ -161,6 +178,7 @@ namespace ESMERALDA
                 this.btn_SaveMetadata.Visible = true;
                 this.controlStartDate.Enabled = true;
                 this.controlEndDate.Enabled = true;
+                chooser.ReadOnly = false;
             }
         }
 

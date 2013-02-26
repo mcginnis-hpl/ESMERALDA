@@ -222,26 +222,49 @@ namespace ESMERALDA
             {
                 if (view.SourceData != null)
                 {
+                    HtmlGenericControl span = null;
+
+                    TableCell td = null;
                     if (view.SourceData.GetType() == typeof(Dataset))
                     {
-                        HtmlGenericControl span = new HtmlGenericControl("span")
+                        span = new HtmlGenericControl("span")
                         {
-                            InnerHtml = "<a href='EditDataset.aspx?DATASETID=" + view.SourceData.ID + "'>Edit Dataset</a><br/>"
+                            InnerHtml = "<a class='squarebutton' href='EditDataset.aspx?DATASETID=" + view.SourceData.ID + "'><span>Edit Dataset</span></a><br/>"
                         };
-                        this.commoncontrols.Controls.Add(span);
+                        td = new TableCell();
+                        td.Controls.Add(span);
+                        controlmenu.Rows[0].Cells.Add(td);
                     }
                     LinkButton lb = new LinkButton
                     {
-                        Text = "Save View"
+                        Text = "<span>Save View</span>"
                     };
                     lb.Click += new EventHandler(this.lb_Click);
-                    this.commoncontrols.Controls.Add(lb);
+                    lb.CssClass = "squarebutton";
+                    td = new TableCell();
+                    td.Controls.Add(lb);
+                    controlmenu.Rows[0].Cells.Add(td);
+
+                    span = new HtmlGenericControl("span")
+                    {
+                        InnerHtml = "<a class='squarebutton' href='javascript:showSaveDialog()' id='saveanchor'><span>Download this data</span></a>"
+                    };
+                    td = new TableCell();
+                    td.Controls.Add(span);
+                    controlmenu.Rows[0].Cells.Add(td);
+
+                    span = new HtmlGenericControl("span")
+                    {
+                        InnerHtml = "<a class='squarebutton' href='VisualizeView.aspx?VIEWID=" + view.ID.ToString() + "' target='_blank'><span>Visualize this data</span></a>"
+                    };
+                    td = new TableCell();
+                    td.Controls.Add(span);
+                    controlmenu.Rows[0].Cells.Add(td);
                 }
                 metadata.Visible = true;
             }
             else
             {
-                this.commoncontrols.Controls.Clear();
                 metadata.Visible = false;
             }
         }
@@ -273,10 +296,8 @@ namespace ESMERALDA
                 numrows = int.Parse(this.txtRowsToRetrieve.Text);
                 url += "&NUMROWS=" + numrows.ToString();
             }
-            if (string.IsNullOrEmpty(txtQuery.Text))
-            {
-                txtQuery.Text = working.GetQuery(numrows);
-            }
+
+            txtQuery.Text = working.GetQuery(numrows);
             testdatapreview.Attributes["src"] = url;
         }
 
@@ -505,17 +526,16 @@ namespace ESMERALDA
 
         protected void PopulateLinks(ESMERALDAClasses.View working)
         {
-            this.spanDownloadCSV.InnerHtml = "<table class='savemenu'><tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "'>Download data as comma-delimited text</a></td><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&COMPRESS=1'>Compressed</a></td></tr>";
+            this.spanDownloadCSV.InnerHtml = "<table class='inlinemenu'><tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "'>Download data as comma-delimited text</a></td><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&COMPRESS=1'>Compressed</a></td></tr>";
             this.spanDownloadCSV.InnerHtml += "<tr><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&DELIM=TAB'>Download data as tab-delimited text</a></td><td><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&DELIM=TAB&COMPRESS=1'>Compressed</a></td></tr>";
             this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='DownloadViewAsCSV.aspx?VIEWID=" + working.ID.ToString() + "&METADATA=1'>Download metadata as XML</a></td></tr>";
             if (working.SourceData.GetType() == typeof(Dataset))
             {
                 this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='http://hpldata.hpl.umces.edu/Default.aspx?DATASETID=" + working.SourceData.ID.ToString() + "'>Direct Link to Dataset</a></td></tr>";
             }
-            this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a href='javascript:hideSaveDialog()'>Close this dialog</a></td></tr>";
+            this.spanDownloadCSV.InnerHtml += "<tr><td colspan='2'><a class='squarebutton' href='javascript:hideSaveDialog()'><span>Close this dialog</span></a></td></tr>";
             this.spanDownloadCSV.InnerHtml += "</table>";
             base.SetSessionValue("View-" + working.ID.ToString(), working);
-            this.vizLink.InnerHtml = "<table border='0px'><tr><td><a href='javascript:showSaveDialog()' id='saveanchor'>Download this data</a></td><td><a href='VisualizeView.aspx?VIEWID=" + working.ID.ToString() + "' target='blank'>Visualize this data</a></td>";
             // this.vizLink.InnerHtml = "<table border='0px'><tr><td><a href='VisualizeView.aspx?VIEWID=" + working.ID.ToString() + "'>Visualize this data</a></td>";
         }
 

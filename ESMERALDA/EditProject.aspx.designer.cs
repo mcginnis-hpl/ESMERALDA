@@ -130,6 +130,24 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.Label txtMetadata_DatabaseName;
         
         /// <summary>
+        /// chooser control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ESMERALDA.PersonChooser chooser;
+        
+        /// <summary>
+        /// lblMetadata_projectid control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblMetadata_projectid;
+        
+        /// <summary>
         /// btn_SaveMetadata control.
         /// </summary>
         /// <remarks>

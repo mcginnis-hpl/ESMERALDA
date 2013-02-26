@@ -19,25 +19,31 @@ namespace ESMERALDA
 
         protected void btnSave_Click(object sender, EventArgs e)
         {
-            if (!base.IsAuthenticated)
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            Person inperson = (Person)GetSessionValue("WorkingPerson");
+            try
             {
-                base.ShowAlert("You must be logged in to change user data.");
-            }
-            else if (this.txtPasswordNew.Text != this.txtPasswordConfirm.Text)
-            {
-                base.ShowAlert("Passwords do not match.");
-            }
-            else if (string.IsNullOrEmpty(this.txtPasswordNew.Text))
-            {
-                base.ShowAlert("Your password can not be empty.");
-            }
-            else if (string.IsNullOrEmpty(this.txtEmail.Text))
-            {
-                base.ShowAlert("Your email address can not be empty.");
-            }
-            else
-            {
-                Person inperson = (Person)GetSessionValue("WorkingPerson");
+
+                if (!base.IsAuthenticated)
+                {
+                    base.ShowAlert("You must be logged in to change user data.");
+                    return;
+                }
+                if (this.txtPasswordNew.Text != this.txtPasswordConfirm.Text)
+                {
+                    base.ShowAlert("Passwords do not match.");
+                    return;
+                }
+                if (base.GetUserID(conn) == inperson.ID && string.IsNullOrEmpty(this.txtPasswordNew.Text))
+                {
+                    base.ShowAlert("Your password can not be empty.");
+                    return;
+                }
+                if (string.IsNullOrEmpty(this.txtEmail.Text))
+                {
+                    base.ShowAlert("Your email address can not be empty.");
+                    return;
+                }
                 inperson.SetMetadataValue("firstname", this.txtFirstName.Text);
                 inperson.SetMetadataValue("lastname", this.txtLastName.Text);
                 inperson.SetMetadataValue("address", this.txtAddress1.Text + (string.IsNullOrEmpty(txtAddress2.Text) ? "\n" + txtAddress2.Text : string.Empty));
@@ -55,11 +61,10 @@ namespace ESMERALDA
                 {
                     inperson.ID = new Guid(this.lblUserID.Text);
                 }
-                else
+                if (inperson.ID == Guid.Empty)
                 {
                     inperson.ID = Guid.NewGuid();
                 }
-                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (!(!(base.GetUserID(conn) != inperson.ID) || base.UserIsAdministrator))
                 {
                     base.ShowAlert("You may only edit your own user information if you are not an administrator.");
@@ -67,27 +72,38 @@ namespace ESMERALDA
                 else
                 {
                     inperson.Save(conn);
-                    SqlCommand cmd = new SqlCommand("RegisterUser", conn)
+                    if (!string.IsNullOrEmpty(txtPassword.Text))
                     {
-                        CommandType = CommandType.StoredProcedure
-                    };
-                    cmd.Parameters.Add("@userName", SqlDbType.VarChar, 100).Value = this.txtEmail.Text;
-                    SqlParameter sqlParam = cmd.Parameters.Add("@passwordHash", SqlDbType.VarChar, 50);
-                    int saltSize = 5;
-                    string salt = ESMERALDAPage.CreateSalt(saltSize);
-                    string passwordHash = ESMERALDAPage.CreatePasswordHash(this.txtPasswordNew.Text, salt);
-                    sqlParam.Value = passwordHash;
-                    try
-                    {
-                        cmd.ExecuteNonQuery();
-                    }
-                    catch (Exception)
-                    {
-                        base.ShowAlert("Error creating user.  User may already exist.");
+                        SqlCommand cmd = new SqlCommand("sp_ESMERALDA_RegisterUser", conn)
+                        {
+                            CommandType = CommandType.StoredProcedure
+                        };
+                        cmd.Parameters.Add("@userName", SqlDbType.VarChar, 100).Value = this.txtEmail.Text;
+                        SqlParameter sqlParam = cmd.Parameters.Add("@passwordHash", SqlDbType.VarChar, 50);
+                        int saltSize = 5;
+                        string salt = ESMERALDAPage.CreateSalt(saltSize);
+                        string passwordHash = ESMERALDAPage.CreatePasswordHash(this.txtPasswordNew.Text, salt);
+                        sqlParam.Value = passwordHash;
+                        try
+                        {
+                            cmd.ExecuteNonQuery();
+                        }
+                        catch (Exception)
+                        {
+                            base.ShowAlert("Error creating user.  User may already exist.");
+                        }
                     }
                     this.PopulateData(inperson, conn);
                     conn.Close();
                 }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (conn != null)
+                    conn.Close();
             }
         }
 
@@ -96,7 +112,7 @@ namespace ESMERALDA
             Person p = (Person)GetSessionValue("WorkingPerson");
             bool passwordMatch = false;
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            SqlCommand cmd = new SqlCommand("LookupUser", conn)
+            SqlCommand cmd = new SqlCommand("sp_ESMERALDA_LookupUser", conn)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -116,7 +132,8 @@ namespace ESMERALDA
                 }
                 if (passwordMatch)
                 {
-                    FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(1, this.txtUsername.Text, DateTime.Now, DateTime.Now.AddMinutes(30.0), this.chkPersistCookie.Checked, "");
+
+                    FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(1, this.txtUsername.Text, DateTime.Now, DateTime.Now.AddYears(1), this.chkPersistCookie.Checked, "");
                     string cookiestr = FormsAuthentication.Encrypt(tkt);
                     HttpCookie ck = new HttpCookie(FormsAuthentication.FormsCookieName, cookiestr);
                     if (this.chkPersistCookie.Checked)
@@ -134,7 +151,7 @@ namespace ESMERALDA
                     this.login.Visible = false;
                     base.ShowAlert("Login successful!");
                     persondata.Visible = true;
-                    PopulateData(p, conn);                    
+                    PopulateData(p, conn);
                 }
                 else
                 {
@@ -154,9 +171,9 @@ namespace ESMERALDA
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            bool isLogin = false;            
+            bool isLogin = false;
             string username = string.Empty;
-            Guid userid = Guid.Empty;    
+            Guid userid = Guid.Empty;
             for (int i = 0; i < base.Request.Params.Count; i++)
             {
                 if (base.Request.Params.GetKey(i).ToUpper() == "USERNAME")
@@ -175,7 +192,7 @@ namespace ESMERALDA
                     }
                 }
             }
-            if(username == string.Empty && userid == Guid.Empty)
+            if (username == string.Empty && userid == Guid.Empty)
             {
                 username = Username;
             }
@@ -205,11 +222,11 @@ namespace ESMERALDA
             }
             if (!IsPostBack)
             {
-                RemoveSessionValue("WorkingPerson");                            
+                RemoveSessionValue("WorkingPerson");
                 Person p = new Person();
-                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");                
+                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 if (!string.IsNullOrEmpty(username) || userid != Guid.Empty)
-                {                        
+                {
                     if (!string.IsNullOrEmpty(username))
                     {
                         p.LoadByUsername(conn, username);
@@ -217,7 +234,7 @@ namespace ESMERALDA
                     else
                     {
                         p.Load(conn, userid);
-                    }                        
+                    }
                 }
                 this.PopulateData(p, conn);
                 conn.Close();
@@ -246,10 +263,9 @@ namespace ESMERALDA
             this.txtState.Text = inperson.GetMetadataValue("state");
             this.txtZIP.Text = inperson.GetMetadataValue("postal");
             this.lblUserID.Text = inperson.ID.ToString();
-            this.txtEmail.ReadOnly = true;
             if (base.Username == inperson.GetMetadataValue("cntemail"))
             {
-                SqlCommand cmd = new SqlCommand("LookupUser", conn)
+                SqlCommand cmd = new SqlCommand("sp_ESMERALDA_LookupUser", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -270,6 +286,7 @@ namespace ESMERALDA
                 }
                 this.txtPasswordNew.Enabled = true;
                 this.txtPasswordConfirm.Enabled = true;
+                this.txtEmail.ReadOnly = false;
                 this.txtFirstName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
                 this.txtAddress1.ReadOnly = false;
@@ -284,10 +301,11 @@ namespace ESMERALDA
                 this.txtState.ReadOnly = false;
                 this.txtZIP.ReadOnly = false;
             }
-            else if(IsAuthenticated)
+            else if (IsAuthenticated)
             {
                 this.txtPasswordNew.Enabled = false;
                 this.txtPasswordConfirm.Enabled = false;
+                this.txtEmail.ReadOnly = false;
                 this.txtFirstName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
                 this.txtAddress1.ReadOnly = false;
@@ -324,10 +342,19 @@ namespace ESMERALDA
                 this.txtPasswordConfirm.Enabled = true;
             }
         }
-        
+
         protected void txtPassword_TextChanged(object sender, EventArgs e)
         {
             this.Login();
+        }
+
+        protected void btnNewUser_Click(object sender, EventArgs e)
+        {
+            Person p = new Person();
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            this.PopulateData(p, conn);
+            conn.Close();
+            SetSessionValue("WorkingPerson", p);
         }
     }
 }

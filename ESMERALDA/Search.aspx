@@ -1,4 +1,5 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Search.aspx.cs" Inherits="ESMERALDA.Search" ValidateRequest="false" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Search.aspx.cs" Inherits="ESMERALDA.Search"
+    ValidateRequest="false" %>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -105,11 +106,14 @@
             google.maps.event.addListener(drawingManager, 'overlaycomplete', executeShape);
         }
 
+        function setDataNotes(content) {
+            var el = document.getElementById("datanotes_content");
+            el.innerHTML = content;
+        }
+
         function attachInfoWindow(overlay, incon, coords, link) {
-            var infowindow = new google.maps.InfoWindow({ content: incon });
-            infowindow.setPosition(coords);
-            google.maps.event.addListener(overlay, 'mouseover', function () { infowindow.open(map); });
-            google.maps.event.addListener(overlay, 'mouseout', function () { infowindow.close(map); });
+            google.maps.event.addListener(overlay, 'mouseover', function () { setDataNotes(incon); });
+            google.maps.event.addListener(overlay, 'mouseout', function () { setDataNotes(" "); });
             google.maps.event.addListener(overlay, 'click', function () { window.open(link, "_blank"); });
         }
 
@@ -140,26 +144,38 @@
                 <h3>
                     Keyword Search</h3>
                 <p>
-                    Search for datasets by keyword (searches metadata and field names).  Type in your keywords separated by spaces.</p>
+                    Search for datasets by keyword (searches metadata and field names). Type in your
+                    keywords separated by spaces.</p>
                 Enter your keywords:
-                <asp:TextBox ID="txtSearchByKeyword" runat="server" Width="469px"></asp:TextBox>
-                <asp:LinkButton ID="btnSearchByKeyword" runat="server">Search</asp:LinkButton>
+                <table border="0"><tr><td><asp:TextBox ID="txtSearchByKeyword" runat="server" Width="469px"></asp:TextBox></td><td><asp:LinkButton ID="btnSearchByKeyword" runat="server" CssClass="squarebutton"><span>Search</span></asp:LinkButton></td></tr></table>                               
                 <asp:Table ID="tblSearchByKeywordResults" runat="server">
                 </asp:Table>
             </div>
             <div id="searchgeospatial">
                 <h3>
                     Geospatial Search</h3>
-                    <p>If you would like to limit your search to a specific geographic area, use the rectangle tool in the map below to draw the bounds of your search area.  You can also click on datasets below to open them.</p>
-                <div id="map_canvas" style="width: 600px; height: 600px">
-                </div>
+                <p>
+                    If you would like to limit your search to a specific geographic area, use the rectangle
+                    tool in the map below to draw the bounds of your search area. You can also click
+                    on datasets below to open them.</p>
+                <table border="0">
+                    <tr>
+                        <td>
+                            <div id="map_canvas" style="width: 600px; height: 600px">
+                            </div>
+                        </td>
+                        <td>
+                            <div id="datanotes"><span id="datanotes_content"></span></div>
+                        </td>
+                    </tr>
+                </table>
                 <asp:HiddenField ID="mapdatasets" runat="server" />
                 <asp:HiddenField ID="searchCoords" runat="server" />
                 <asp:HiddenField ID="mapCenter" runat="server" />
                 <asp:HiddenField ID="mapZoom" runat="server" />
             </div>
             <div id="externalSearchResults">
-            <h3>
+                <h3>
                     Results from Other Sites</h3>
                 <asp:Table ID="tblExternalSearchResults" runat="server">
                 </asp:Table>

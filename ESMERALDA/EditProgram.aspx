@@ -2,6 +2,8 @@
 
 <%@ Register Assembly="SlimeeLibrary" Namespace="SlimeeLibrary" TagPrefix="cc1" %>
 
+<%@ Register TagPrefix="pc" TagName="PersonChooser" Src="~/PersonChooser.ascx" %>
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
@@ -14,7 +16,7 @@
     <form id="form1" runat="server">
     <div id="page_wrapper">    
     <div id="pagecontent">
-    <div id="metadata" runat="server">
+    <div id="metadata" runat="server" class="clearfix">
         <h4>
             Program metadata:</h4>
         <table border="1px">
@@ -103,8 +105,16 @@
                 <td>Database Name:</td>
                 <td><asp:Label ID="lblMetadata_DatabaseName" runat="server" Text="Label"></asp:Label></td>
             </tr>
+            <tr>
+                <td colspan="2">
+                    People:<br />
+                                    <pc:PersonChooser ID="chooser" runat="server" />
+                </td>
+                <td colspan="2">
+                </td>
+            </tr>
         </table>
-        <asp:LinkButton ID="btnSave" runat="server" onclick="btnSave_Click">Save Metadata</asp:LinkButton>
+        <asp:LinkButton ID="btnSave" runat="server" onclick="btnSave_Click" CssClass="squarebutton"><span>Save Metadata</span></asp:LinkButton>
     </div>
     <div id="projects" runat="server">
     </div>

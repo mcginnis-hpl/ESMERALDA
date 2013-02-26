@@ -85,6 +85,15 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.Table filterTable;
         
         /// <summary>
+        /// controlmenu control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Table controlmenu;
+        
+        /// <summary>
         /// btnAddColumn control.
         /// </summary>
         /// <remarks>
@@ -184,22 +193,13 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.TextBox txtQuery;
         
         /// <summary>
-        /// btnExecuteQuery control.
+        /// querycontrols control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.LinkButton btnExecuteQuery;
-        
-        /// <summary>
-        /// commoncontrols control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlGenericControl commoncontrols;
+        protected global::System.Web.UI.WebControls.Table querycontrols;
         
         /// <summary>
         /// txtRowsToRetrieve control.
@@ -209,6 +209,15 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtRowsToRetrieve;
+        
+        /// <summary>
+        /// btnExecuteQuery control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton btnExecuteQuery;
         
         /// <summary>
         /// testdatapreview control.
@@ -236,15 +245,6 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.HtmlControls.HtmlGenericControl spanDownloadCSV;
-        
-        /// <summary>
-        /// vizLink control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlGenericControl vizLink;
         
         /// <summary>
         /// viewValues control.

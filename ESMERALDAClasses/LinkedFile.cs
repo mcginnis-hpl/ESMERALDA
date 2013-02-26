@@ -33,7 +33,7 @@ namespace ESMERALDAClasses
         {
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_LoadLinkedFile";
+            query.CommandText = "sp_ESMERALDA_LoadLinkedFile";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@inID", ID));
@@ -77,7 +77,7 @@ namespace ESMERALDAClasses
                 ID = Guid.NewGuid();
             }
             query.CommandType = CommandType.StoredProcedure;
-            query.CommandText = "sp_WriteLinkedFile";
+            query.CommandText = "sp_ESMERALDA_WriteLinkedFile";
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@infile_id", ID));

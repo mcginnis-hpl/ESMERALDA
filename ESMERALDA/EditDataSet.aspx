@@ -1,6 +1,8 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="EditDataSet.aspx.cs" Inherits="ESMERALDA.EditDataSet" %>
 
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="asp" %>
+<%@ Register TagPrefix="pc" TagName="PersonChooser" Src="~/PersonChooser.ascx" %>
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
@@ -494,14 +496,14 @@
                                 <img src="img/loading.gif" width="50px" alt="Loading..." /></center>
                         </div>
                         <div id="deleteDataControl" runat="server">
-                            <asp:LinkButton ID="btnDeleteExistingData" runat="server" OnClick="btnDeleteExistingData_Click">Delete Existing Data</asp:LinkButton>
+                            <asp:LinkButton ID="btnDeleteExistingData" runat="server" OnClick="btnDeleteExistingData_Click" CssClass="squarebutton"><span>Delete Existing Data</span></asp:LinkButton>
                         </div>
                         <div id="divuploadedFiles">
                             <asp:Table ID="uploadedFiles" runat="server">
                             </asp:Table>
                         </div>
                     </div>
-                    <div id="metadata" runat="server">
+                    <div id="metadata" runat="server" class="clearfix">
                         <h4>
                             Dataset metadata:</h4>
                         <table border="1px">
@@ -510,13 +512,13 @@
                                     Name:
                                 </td>
                                 <td>
-                                    <asp:TextBox ID="txtMetadata_Name" runat="server"></asp:TextBox>
+                                    <asp:TextBox ID="txtMetadata_Name" runat="server" Width="100%"></asp:TextBox>
                                 </td>
                                 <td>
                                     Short Description:
                                 </td>
                                 <td>
-                                    <asp:TextBox ID="txtMetadata_ShortDescription" runat="server"></asp:TextBox>
+                                    <asp:TextBox ID="txtMetadata_ShortDescription" runat="server" Width="100%"></asp:TextBox>
                                 </td>
                             </tr>
                             <tr>
@@ -586,9 +588,9 @@
                                         <asp:ListItem Text="No" Value="false"></asp:ListItem>
                                     </asp:DropDownList>
                                 </td>
-                                <td>
-                                </td>
-                                <td>                                    
+                                <td colspan="2">
+                                    People:<br />
+                                    <pc:PersonChooser ID="chooser" runat="server" />
                                 </td>
                             </tr>
                         </table>
@@ -607,10 +609,10 @@
                                 <asp:TableHeaderCell></asp:TableHeaderCell>
                             </asp:TableHeaderRow>
                         </asp:Table>
-                        <asp:LinkButton ID="btnSaveTableConfig" runat="server" OnClick="btnSaveTableConfig_Click">Save Data Specification</asp:LinkButton>
+                        <asp:LinkButton ID="btnSaveTableConfig" runat="server" OnClick="btnSaveTableConfig_Click" CssClass="squarebutton"><span>Save Data Specification</span></asp:LinkButton>
                     </div>
                     <div id="saveControl" runat="server">
-                        <asp:LinkButton ID="btnCreateDataset" runat="server" OnClick="btnCreateDataset_Click">Create Dataset</asp:LinkButton>
+                        <asp:LinkButton ID="btnCreateDataset" runat="server" OnClick="btnCreateDataset_Click" CssClass="squarebutton"><span>Create Dataset</span></asp:LinkButton>
                     </div>
                     <div id="divCreateSpinner" class="centered" runat="server" style="border-width: 1; display: none;">
                             <center>
@@ -646,10 +648,10 @@
                                 <asp:TextBox ID="txt_meta_description" runat="server"></asp:TextBox></td></tr>
                                 <tr>
                                 <td>
-                                    <a href="javascript:commitMetadata()">Save Metadata</a>
+                                    <a class="squarebutton" href="javascript:commitMetadata()"><span>Save Metadata</span></a>
                                 </td>
                                 <td>
-                                    <a href="javascript:cancelMetadata()">Cancel</a>
+                                    <a class="squarebutton" href="javascript:cancelMetadata()"><span>Cancel</span></a>
                                 </td>
                             </tr>
                         </table>
@@ -700,10 +702,10 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <a href="javascript:commitNewMetric()">Save Metric</a>
+                                    <a class="squarebutton" href="javascript:commitNewMetric()"><span>Save Metric</span></a>
                                 </td>
                                 <td>
-                                    <a href="javascript:cancelNewMetric()">Cancel</a>
+                                    <a class="squarebutton" href="javascript:cancelNewMetric()"><span>Cancel</span></a>
                                 </td>
                             </tr>
                         </table>

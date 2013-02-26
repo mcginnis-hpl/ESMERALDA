@@ -33,12 +33,24 @@ namespace ESMERALDA
 
         protected void PopulateControls(ESMERALDAClasses.View inView)
         {
-            string xaxis_value = comboXAxis.SelectedValue;
-            string yaxis_value = comboYAxis.SelectedValue;
-            string field1_value = comboField1.SelectedValue;
-            string field2_value = comboField2.SelectedValue;
-            string field3_value = comboField3.SelectedValue;
-            string field4_value = comboField4.SelectedValue;
+            string xaxis_value = string.Empty;
+            if (comboXAxis.SelectedValue != null)
+                xaxis_value = comboXAxis.SelectedValue;
+            string yaxis_value = string.Empty;
+            if (comboYAxis.SelectedValue != null)
+                yaxis_value = comboYAxis.SelectedValue;
+            string field1_value = string.Empty;
+            if (comboField1.SelectedValue != null)
+                field1_value = comboField1.SelectedValue;
+            string field2_value = string.Empty;
+            if (comboField2.SelectedValue != null)
+                field2_value = comboField2.SelectedValue;
+            string field3_value = string.Empty;
+            if (comboField3.SelectedValue != null)
+                field3_value = comboField3.SelectedValue;
+            string field4_value = string.Empty;
+            if (comboField4.SelectedValue != null)
+                field4_value = comboField4.SelectedValue;
 
             comboXAxis.Items.Clear();
             comboYAxis.Items.Clear();

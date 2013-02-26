@@ -210,7 +210,7 @@
                         <tr>
                             <td colspan="2" align="center">
                                 <asp:LinkButton ID="btnCreateGraph" runat="server" 
-                                    onclick="btnCreateGraph_Click">Create Graph</asp:LinkButton></td>
+                                    onclick="btnCreateGraph_Click" CssClass="squarebutton"><span>Create Graph</span></asp:LinkButton></td>
                         </tr>
                     </table>
                 </div>

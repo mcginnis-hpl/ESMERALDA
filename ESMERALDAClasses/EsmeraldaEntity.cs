@@ -12,10 +12,12 @@
         public DateTime Timestamp = DateTime.MinValue;
         public bool IsPublic = true;
         protected Dictionary<string, List<string>> Metadata;
+        public List<PersonRelationship> Relationships;
 
         public EsmeraldaEntity()
         {
             Metadata = new Dictionary<string, List<string>>();
+            Relationships = new List<PersonRelationship>();
         }
 
         public string GetMetadataValue(string inKey)
@@ -134,6 +136,30 @@
                 Owner = new Person();
                 Owner.Load(conn, ownerid);
             }
+            query = new SqlCommand
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "sp_ESMERALDA_LoadPersonRelationships",
+                CommandTimeout = 60,
+                Connection = conn
+            };
+            query.Parameters.Add(new SqlParameter("@inentityid", ID));
+            reader = query.ExecuteReader();
+            while (reader.Read())
+            {
+                PersonRelationship p = new PersonRelationship();
+                Guid personid = new Guid(reader["personid"].ToString());
+                p.temp_personid = personid;
+                p.relationship = reader["relationship"].ToString();
+                p.ID = new Guid(reader["personrelationshipid"].ToString());
+                Relationships.Add(p);
+            }
+            reader.Close();
+            foreach (PersonRelationship pr in Relationships)
+            {
+                pr.person = new Person();
+                pr.person.Load(conn, pr.temp_personid);
+            }            
         }
 
         public virtual void Save(SqlConnection conn)
@@ -170,6 +196,21 @@
                 query.CommandTimeout = 60;
                 query.CommandType = CommandType.Text;
                 query.ExecuteNonQuery();
+            }
+            cmd = "DELETE FROM person_relationship WHERE entityid='" + this.ID.ToString() + "';";
+            if (!string.IsNullOrEmpty(cmd))
+            {
+                query = new SqlCommand();
+                query.CommandText = cmd;
+                query.Connection = conn;
+                query.CommandTimeout = 60;
+                query.CommandType = CommandType.Text;
+                query.ExecuteNonQuery();
+            }
+
+            foreach (PersonRelationship p in Relationships)
+            {
+                p.Save(conn, this.ID);
             }
         }
     }

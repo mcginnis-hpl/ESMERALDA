@@ -179,7 +179,9 @@
                         </td>
                     </tr>
                 </table>
-                <asp:LinkButton ID="btnSaveProgram" runat="server" OnClick="btnSaveProgram_Click">Save Metadata</asp:LinkButton>
+                <br />
+                <div class="inlinemenu"><asp:LinkButton ID="btnSaveProgram" runat="server" OnClick="btnSaveProgram_Click" CssClass="squarebutton"><span>Save Metadata</span></asp:LinkButton></div>
+                <br /><br />
             </div>
             <div id="project">
                 <h4>
@@ -280,7 +282,8 @@
                         </td>
                     </tr>
                 </table>
-                <asp:LinkButton ID="btn_SavProject" runat="server" OnClick="btn_SavProject_Click">Save Metadata</asp:LinkButton>
+                <div class="inlinemenu"><asp:LinkButton ID="btn_SavProject" runat="server" OnClick="btn_SavProject_Click" CssClass="squarebutton"><span>Save Metadata</span></asp:LinkButton></div>
+                <br /><br />
             </div>
             <div id="dataset">
                 <h4>
@@ -410,8 +413,8 @@
                 <asp:HiddenField ID="newMetrics" runat="server" />
                 <asp:HiddenField ID="selectedMetric" runat="server" />
                 <asp:HiddenField ID="fieldCommands" runat="server" />
-                <asp:LinkButton ID="btnSaveDataset" runat="server" 
-                    onclick="btnSaveDataset_Click">Save Dataset</asp:LinkButton>
+                <div class="inlinemenu"><asp:LinkButton ID="btnSaveDataset" runat="server" 
+                    onclick="btnSaveDataset_Click">Save Dataset</asp:LinkButton></div>
             </div>
         </div>        
     </div>
