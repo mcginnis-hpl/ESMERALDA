@@ -37,9 +37,14 @@
             return value;
         }
 
-        public string GetMetadata()
+        public override string GetMetadata(MetadataFormat format)
         {
-            return (((((string.Empty + "<metric>") + "<metric_name>" + this.Name + "</metric_name>") + "<metric_abbreviation>" + this.Abbrev + "</metric_abbreviation>") + "<data_type>" + Utils.MapFieldType(this.DataType) + "</data_type>") + "</metric>");
+            string ret = string.Empty;
+            if (format == MetadataFormat.XML)
+            {
+                ret = (((((string.Empty + "<metric>") + "<metric_name>" + this.Name + "</metric_name>") + "<metric_abbreviation>" + this.Abbrev + "</metric_abbreviation>") + "<data_type>" + Utils.MapFieldType(this.DataType) + "</data_type>") + "</metric>");
+            }
+            return ret;            
         }
 
         public static List<Metric> LoadExistingMetrics(SqlConnection conn)

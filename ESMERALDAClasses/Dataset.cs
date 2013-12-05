@@ -5,17 +5,264 @@ using System.Text;
 using System.Data;
 using System.Data.SqlClient;
 using System.Xml;
+using LumenWorks.Framework.IO.Csv;
 
 namespace ESMERALDAClasses
 {
+    /*
+     * Metadata Values
+     * title
+     * purpose
+     * abstract
+     * procdesc
+     * acqdesc
+     * url
+     * 
+     * */
+
     public class Dataset : QuerySet
     {
         public int Version;
         public bool IsEditable;
+        public bool IsDirty;
 
-        public override string GetMetadata()
+        public override string GetMetadata(MetadataFormat format)
         {
-            string ret = string.Empty;            
+            string ret = string.Empty;
+            if (format == MetadataFormat.XML)
+            {
+                ret = "<dataset>";
+                /*if (Owner != null)
+                {
+                    ret += "<owner>" + Owner.GetMetadata(format) + "</owner>";
+                }*/
+                if (Relationships.Count > 0)
+                {
+                    foreach (PersonRelationship pr in Relationships)
+                    {
+                        ret += pr.GetMetadata(format);
+                    }
+                }
+                foreach (string s in Metadata.Keys)
+                {
+                    System.Collections.Generic.List<string> meta = Metadata[s];
+                    for (int i = 0; i < meta.Count; i++)
+                    {
+                        ret += "<" + s + ">" + meta[i] + "</" + s + ">";
+                    }
+                }
+                ret += "<fields>";
+                foreach (Field f in Header)
+                {
+                    ret += f.GetMetadata(format);
+                }
+                ret += "</fields>";
+                ret += "<version>" + Version.ToString() + "</version>";
+                ret += "</dataset>";
+            }
+            else if (format == MetadataFormat.BCODMO)
+            {
+                ret += "Originating PI name and contact information:" + Environment.NewLine;
+                string val = string.Empty;
+                foreach (PersonRelationship r in Relationships)
+                {
+                    if (r.relationship == "Principal Investigator")
+                    {
+                        val = r.person.GetMetadata(format);
+                    }
+                    if (!string.IsNullOrEmpty(val))
+                        val += Environment.NewLine;
+                    ret += val;
+                }
+                ret += Environment.NewLine;
+                ret += "Contact name and contact information:  " + Environment.NewLine;
+                if (Owner != null)
+                {
+                    ret += Owner.GetMetadata(format);
+                }
+                ret += Environment.NewLine;
+                ret += "Dataset Name: " + GetMetadataValue("title") + Environment.NewLine;
+                ret += "Dataset Description: " + GetMetadataValue("purpose") + Environment.NewLine;
+                if (ParentContainer != null)
+                {
+                    ret += "Project: " + ParentContainer.GetMetadataValue("title") + Environment.NewLine;
+                }
+                val = string.Empty;
+                string bounds = string.Empty;
+                val = GetMetadataValue("southbc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    bounds += "South: " + val;
+                }
+                val = GetMetadataValue("westbc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    bounds += "West: " + val;
+                }
+                val = GetMetadataValue("northbc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    bounds += "North: " + val;
+                }
+                val = GetMetadataValue("eastbc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    bounds += "East: " + val;
+                }
+                if (!string.IsNullOrEmpty(bounds))
+                {
+                    ret += "Location: " + Environment.NewLine;
+                    ret += bounds;
+                }
+                ret += Environment.NewLine;
+                ret += "Parameter names, definitions and units:" + Environment.NewLine;
+                foreach (Field f in Header)
+                {
+                    ret += f.GetMetadata(format);
+                }
+                ret += Environment.NewLine;
+                ret += "Sampling and Analytical Methodology:" + Environment.NewLine;
+                val = GetMetadataValue("acqdesc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    ret += val + Environment.NewLine;
+                }
+                ret += Environment.NewLine;
+                ret += "Data Processing:" + Environment.NewLine;
+                val = GetMetadataValue("procdesc");
+                if (!string.IsNullOrEmpty(val))
+                {
+                    ret += val + Environment.NewLine;
+                }
+            }
+            else if (format == MetadataFormat.FGDC)
+            {
+                PersonRelationship pi = null;
+                foreach (PersonRelationship r in Relationships)
+                {
+                    if (r.relationship == "Principal Investigator")
+                    {
+                        pi = r;
+                    }
+                }
+                ret += "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>";    
+                ret += "<metadata>";
+                ret += "<idinfo>";
+                ret += "<citation>";
+                ret += "<citeinfo>";
+                if(pi != null)
+                {
+                    ret += "<origin>" + pi.GetMetadataValue("cntorg") + "</origin>";
+                }
+                if(!string.IsNullOrEmpty(GetMetadataValue("pubdate")))
+                {
+                    ret += "<pubdate>" + GetMetadataValue("pubdate") + "</pubdate>";
+                }
+                ret += "<title>" + GetMetadataValue("title") + "</title>";
+                //<geoform>Digital vector data</geoform>
+                ret += "</citeinfo>";
+                ret += "</citation>";
+                ret += "<descript>";
+                if(!string.IsNullOrEmpty(GetMetadataValue("abstract")))
+                {
+                    ret += "<abstract>" + GetMetadataValue("abstract") + "</abstract>";
+                }
+                if(!string.IsNullOrEmpty(GetMetadataValue("purpose")))
+                {
+                    ret += "<purpose>" + GetMetadataValue("purpose") + "</purpose>";
+                }
+                ret += "</descript>";
+                if (ParentContainer != null)
+                {
+                    string val = ParentContainer.GetMetadataValue("startdate");
+                    DateTime startdate = DateTime.MinValue;
+                    DateTime enddate = DateTime.MinValue;
+                    if(!string.IsNullOrEmpty(val))
+                    {                        
+                        startdate = DateTime.Parse(val);
+                    }
+                    val = ParentContainer.GetMetadataValue("enddate");
+                    if(!string.IsNullOrEmpty(val))
+                    {
+                        enddate = DateTime.Parse(val);
+                    }
+                    if(startdate != DateTime.MinValue)
+                    {
+                        if(enddate != DateTime.MinValue)
+                        {
+                            ret += "<timeperd><timeinfo><rngdates>";
+                            ret += "<begdate>" + startdate.ToString("YYYYmmdd") + "</begdate>";
+                            ret += "<enddate>" + enddate.ToString("YYYYmmdd") + "</enddate>";
+                            ret += "</rngdates></timeinfo></timeperd>";
+                        }
+                        else
+                        {
+                            ret += "<timeperd><timeinfo><sngdate>";
+                            ret += "<caldate>" + startdate.ToString("YYYYmmdd") + "</caldate>";                            
+                            ret += "</sngdates></timeinfo></timeperd>";
+                        }
+                    }
+                    else if(enddate != DateTime.MinValue)
+                    {
+                        ret += "<timeperd><timeinfo><sngdate>";
+                        ret += "<caldate>" + enddate.ToString("YYYYmmdd") + "</caldate>";                            
+                        ret += "</sngdates></timeinfo></timeperd>";
+                    }                                                        
+                }
+                if(!string.IsNullOrEmpty(GetMetadataValue("status")))
+                {
+                    ret += "<status><progress>" + GetMetadataValue("status") + "</progress></status>";
+                }                
+                string westbc = GetMetadataValue("westbc");
+                string eastbc = GetMetadataValue("eastbc");
+                string northbc = GetMetadataValue("northbc");
+                string southbc = GetMetadataValue("southbc");
+                if (!string.IsNullOrEmpty(westbc) || !string.IsNullOrEmpty(eastbc) || !string.IsNullOrEmpty(northbc) || !string.IsNullOrEmpty(southbc))
+                {
+                    ret += "<spdom><bounding>";
+                    if(!string.IsNullOrEmpty(westbc))
+                        ret += "<westbc>" + westbc + "</westbc>";
+                    if (!string.IsNullOrEmpty(eastbc))
+                        ret += "<eastbc>" + eastbc + "</eastbc>";
+                    if (!string.IsNullOrEmpty(northbc))
+                        ret += "<northbc>" + northbc + "</northbc>";
+                    if (!string.IsNullOrEmpty(southbc))
+                        ret += "<southbc>" + southbc + "</southbc>";
+                    ret += "</bounding></spdom>";
+                }
+                List<string> keywords = GetMetadataValueArray("keyword");
+                if(keywords.Count > 0)
+                {
+                    ret += "<theme>";
+                    foreach (string kt in keywords)
+                    {
+                        ret += "<themekey>" + kt + "</themekey>";
+                    }
+                    ret += "</theme>";
+                }
+                ret += "</idinfo>";
+                ret += "<ptcontac>";
+                if (pi != null)
+                {
+                    ret += pi.GetMetadata(format);
+                }
+                ret += "</ptcontac>";
+                if (Header.Count > 0)
+                {
+                    ret += "<eainfo><detailed>";
+                    foreach (Field f in Header)
+                    {
+                        string val = f.GetMetadata(format);
+                        if (!string.IsNullOrEmpty(val))
+                        {
+                            ret += val;
+                        }
+                    }
+                    ret += "</detailed></eainfo>";
+                }
+                ret += "</metadata>";
+            }
+            
             return ret;
         }
 
@@ -25,6 +272,7 @@ namespace ESMERALDAClasses
             Header = new List<QueryField>();
             Version = -1;
             IsEditable = true;
+            IsDirty = false;
         }
 
         public bool IsDefined
@@ -40,15 +288,7 @@ namespace ESMERALDAClasses
                 }
                 return true;
             }
-        }
-
-        public string BuildMetadata(Project parentProject, Program parentProgram)
-        {
-            XmlDocument doc = new XmlDocument();
-            XmlNode node = doc.CreateNode(XmlNodeType.XmlDeclaration, "", "");
-            doc.AppendChild(node);
-            return doc.InnerXml;
-        }
+        }        
 
         public override void Load(SqlConnection conn, Guid inID, List<Conversion> globalConversions, List<Metric> metrics)
         {
@@ -61,7 +301,7 @@ namespace ESMERALDAClasses
             query.Parameters.Add(new SqlParameter("@inID", inID));
             SqlDataReader reader = query.ExecuteReader();
             Guid enteredbyid = Guid.Empty;
-            Guid projectid = Guid.Empty;
+            Guid containerid = Guid.Empty;
             while (reader.Read())
             {
                 if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
@@ -69,7 +309,7 @@ namespace ESMERALDAClasses
                     if (!reader.IsDBNull(reader.GetOrdinal("version")))
                         Version = int.Parse(reader["version"].ToString());
                     if (!reader.IsDBNull(reader.GetOrdinal("project_id")))
-                        projectid = new Guid(reader["project_id"].ToString());
+                        containerid = new Guid(reader["project_id"].ToString());
                     if (!reader.IsDBNull(reader.GetOrdinal("sql_table_name")))
                         SQLName = reader["sql_table_name"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("editable")))
@@ -139,10 +379,10 @@ namespace ESMERALDAClasses
                     }
                 }
             }
-            if (projectid != Guid.Empty)
+            if (containerid != Guid.Empty)
             {
-                ParentProject = new Project();
-                ParentProject.Load(conn, projectid);
+                ParentEntity = new Container();
+                ParentEntity.Load(conn, containerid);
             }            
         }
 
@@ -162,9 +402,9 @@ namespace ESMERALDAClasses
             query.CommandTimeout = 60;
             query.Connection = conn;
             query.Parameters.Add(new SqlParameter("@indataset_id", ID));
-            if (ParentProject != null)
+            if (ParentContainer != null)
             {
-                query.Parameters.Add(new SqlParameter("@inproject_id", ParentProject.ID));
+                query.Parameters.Add(new SqlParameter("@inproject_id", ParentContainer.ID));
             }
             query.Parameters.Add(new SqlParameter("@inversion", Version));
             query.Parameters.Add(new SqlParameter("@insql_table_name", SQLName));
@@ -180,121 +420,79 @@ namespace ESMERALDAClasses
             {
                 if (f.Owner == null)
                     f.Owner = Owner;
-                f.Save(ID, conn);
+                f.Save(this, conn);
             }
 
-            base.Save(conn);
+            base.Save(conn);            
         }
 
-        public DataTable SaveTemporaryData(SqlConnection conn, List<string> rows, Dictionary<string, int> column_map, Guid myId, DataTable dt, char[] delim)
+        public DataTable SaveTemporaryData(CsvReader csv, DataTable dt)
         {
             DateTime starttime = DateTime.Now;
 
-            int row_offset = 0;
-            SqlCommand query = new SqlCommand();
-            query.Connection = conn;
-            query.CommandType = CommandType.StoredProcedure;
-            query.CommandTimeout = 60;
-            query.CommandText = "sp_ESMERALDA_GetMaxTemporaryRowNumber";
-            query.Parameters.Add(new SqlParameter("@inID", myId));
-            SqlDataReader reader = query.ExecuteReader();
-            while (reader.Read())
-            {
-                if (!reader.IsDBNull(reader.GetOrdinal("MaxRowNumber")))
-                {
-                    row_offset = int.Parse(reader["MaxRowNumber"].ToString()) + 1;
-                }
-            }
-            reader.Close();
-
-            if (dt == null)
+            if (dt == null || dt.Rows.Count == 0)
             {
                 dt = new DataTable("tmpdata");
 
-                DataColumn sessionID = new DataColumn();
-                sessionID.DataType = typeof(Guid);
-                sessionID.ColumnName = "SessionID";
-                dt.Columns.Add(sessionID);
-
-                DataColumn rowNumber = new DataColumn();
-                rowNumber.DataType = System.Type.GetType("System.Int32");
-                rowNumber.ColumnName = "RowNumber";
-                dt.Columns.Add(rowNumber);
-
-                DataColumn data = new DataColumn();
-                data.DataType = System.Type.GetType("System.String");
-                data.ColumnName = "Data";
-                dt.Columns.Add(data);
-
-                DataColumn sourcecolumnname = new DataColumn();
-                sourcecolumnname.DataType = System.Type.GetType("System.String");
-                sourcecolumnname.ColumnName = "SourceColumnName";
-                dt.Columns.Add(sourcecolumnname);
-            }
-
-            int col = 0;
-            for (int i = 0; i < rows.Count; i++)
-            {
-                if (string.IsNullOrEmpty(rows[i]))
-                    continue;
-                string[] tokens = rows[i].Split(delim);
-                bool valid = false;
                 foreach (Field f in Header)
                 {
-                    if (!string.IsNullOrEmpty(tokens[column_map[f.SourceColumnName]].Trim()))
+                    DataColumn data = new DataColumn();
+                    data.DataType = System.Type.GetType("System.String");
+                    data.ColumnName = f.SourceColumnName;
+                    dt.Columns.Add(data);
+                }
+            }
+            else
+            {
+                foreach (Field f in Header)
+                {
+                    if(!dt.Columns.Contains(f.SourceColumnName))
                     {
-                        valid = true;
-                        break;
+                        DataColumn data = new DataColumn();
+                        data.DataType = System.Type.GetType("System.String");
+                        data.ColumnName = f.SourceColumnName;
+                        dt.Columns.Add(data);
                     }
                 }
-                if (!valid)
-                    continue;
-                foreach (Field f in Header)
+            }
+            int fieldCount = csv.FieldCount;
+            string[] headers = csv.GetFieldHeaders();
+            while(csv.ReadNextRecord())
+            {
+                DataRow dr = dt.NewRow();
+                for (int i = 0; i < fieldCount; i++)
                 {
-                    col = column_map[f.SourceColumnName];
-                    DataRow dr = dt.NewRow();
-                    dr["SessionID"] = myId;
-                    dr["RowNumber"] = row_offset + i;
-                    dr["Data"] = tokens[col];
-                    dr["SourceColumnName"] = f.SourceColumnName;
-                    dt.Rows.Add(dr);
+                    dr[headers[i]] = csv[i];
                 }
+                dt.Rows.Add(dr);                
             }
             dt.AcceptChanges();
             return dt;
         }
 
-        public DataTable MoveExistingDataToTemp(SqlConnection conn, Guid myId)
+        public DataTable MoveExistingDataToTemp(SqlConnection conn, Guid myId, bool doFull)
         {
             if (ID == Guid.Empty || string.IsNullOrEmpty(SQLName))
                 return null;
             DataTable dt = new DataTable("tmpdata");
 
-            DataColumn sessionID = new DataColumn();
-            sessionID.DataType = typeof(Guid);
-            sessionID.ColumnName = "SessionID";
-            dt.Columns.Add(sessionID);
-
-            DataColumn rowNumber = new DataColumn();
-            rowNumber.DataType = System.Type.GetType("System.Int32");
-            rowNumber.ColumnName = "RowNumber";
-            dt.Columns.Add(rowNumber);
-
-            DataColumn data = new DataColumn();
-            data.DataType = System.Type.GetType("System.String");
-            data.ColumnName = "Data";
-            dt.Columns.Add(data);
-
-            DataColumn sourcecolumnname = new DataColumn();
-            sourcecolumnname.DataType = System.Type.GetType("System.String");
-            sourcecolumnname.ColumnName = "SourceColumnName";
-            dt.Columns.Add(sourcecolumnname);
-
-            string dbname = ParentProject.database_name;
+            foreach (Field f in Header)
+            {
+                DataColumn data = new DataColumn();
+                data.DataType = System.Type.GetType("System.String");
+                data.ColumnName = f.SourceColumnName;
+                dt.Columns.Add(data);
+            }
+            string dbname = ParentContainer.database_name;
             string tablename = SQLName;
             SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
             int row = 0;
-            string cmd = "SELECT * FROM " + SQLName;
+            string cmd = "SELECT";
+            if (!doFull)
+            {
+                cmd += " TOP(200)";
+            }
+            cmd += " * FROM [" + SQLName + "]";
             SqlCommand query = new SqlCommand();
             query.Connection = dataconn;
             query.CommandTimeout = 60;
@@ -303,64 +501,51 @@ namespace ESMERALDAClasses
             SqlDataReader reader = query.ExecuteReader();
             while (reader.Read())
             {
+                DataRow dr = dt.NewRow();
                 for (int i = 0; i < Header.Count; i++)
                 {
-                    DataRow dr = dt.NewRow();
-                    dr["SessionID"] = myId;
-                    dr["RowNumber"] = row;
-                    if (!Header[i].IsSubfield)
+                    Field f = (Field)Header[i];
+                    if (f.IsSubfield)
                     {
-                        if (Header[i].DBType == Field.FieldType.DateTime)
-                        {
-                            if (((Field)Header[i]).Subfield != null)
-                            {
-                                dr["Data"] = DateTime.Parse(reader[Header[i].SQLColumnName].ToString()).Date.ToString();
-                            }
-                            else
-                            {
-                                dr["Data"] = reader[Header[i].SQLColumnName].ToString();
-                            }
-                        }
-                        else
-                        {
-                            dr["Data"] = reader[Header[i].SQLColumnName].ToString();
-                        }
+                        continue;
                     }
-                    dr["SourceColumnName"] = ((Field)Header[i]).SourceColumnName;
-                    dt.Rows.Add(dr);
-                    if (((Field)Header[i]).Subfield != null)
+                    if (f.Subfield == null)
                     {
-                        DataRow dr2 = dt.NewRow();
-                        dr2["Data"] = DateTime.Parse(reader[Header[i].SQLColumnName].ToString()).TimeOfDay.ToString();
-                        dr2["SessionID"] = myId;
-                        dr2["RowNumber"] = row;
-                        dr2["SourceColumnName"] = ((Field)Header[i]).Subfield.SourceColumnName;
-                        dt.Rows.Add(dr2);
+                        dr[f.SourceColumnName] = reader[f.SQLColumnName].ToString();
+                    }
+                    else
+                    {
+                        DateTime tmp = DateTime.Parse(reader[f.SQLColumnName].ToString());
+                        if (f.DBType == Field.FieldType.DateTime)
+                        {
+                            dr[f.SourceColumnName] = tmp.ToShortDateString();
+                        }
+                        else if (f.DBType == Field.FieldType.Time)
+                        {
+                            dr[f.SourceColumnName] = tmp.ToShortTimeString();
+                        }
+                        if (f.Subfield.DBType == Field.FieldType.Time)
+                        {
+                            dr[f.Subfield.SourceColumnName] = tmp.ToShortTimeString();
+                        }
+                        else if (f.Subfield.DBType == Field.FieldType.DateTime)
+                        {
+                            dr[f.Subfield.SourceColumnName] = tmp.ToShortDateString();
+                        }
                     }
                 }
+                dt.Rows.Add(dr);
                 row += 1;
             }
             reader.Close();
             dataconn.Close();
             dt.AcceptChanges();
             return dt;
-            /*SqlBulkCopy bulkCopy = new SqlBulkCopy(conn);
-            bulkCopy.DestinationTableName = "dbo.temporary_storage";
-
-            try
-            {
-                // Write from the source to the destination.
-                bulkCopy.WriteToServer(dt);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }*/
         }
 
         public void DeleteExistingData()
         {
-            string dbname = ParentProject.database_name;
+            string dbname = ParentContainer.database_name;
             string tablename = SQLName;
             SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
             string cmd = "TRUNCATE TABLE " + SQLName;
@@ -377,12 +562,15 @@ namespace ESMERALDAClasses
         {
             string lat_field = string.Empty;
             string lon_field = string.Empty;
+            string datetime_field = string.Empty;
 
             Guid lat_guid = new Guid("C8A09A60-E42E-4D12-96EF-9F54A707B255");
             Guid lon_guid = new Guid("22DDBCD9-E1AD-4348-823B-542E6577B735");
 
             foreach (Field f in Header)
             {
+                if (f.FieldMetric == null)
+                    continue;
                 if (f.FieldMetric.ID == lat_guid)
                 {
                     lat_field = f.SQLColumnName;
@@ -391,16 +579,21 @@ namespace ESMERALDAClasses
                 {
                     lon_field = f.SQLColumnName;
                 }
+                if (f.DBType == Field.FieldType.DateTime)
+                {
+                    datetime_field = f.SQLColumnName;
+                }
             }
             if (!string.IsNullOrEmpty(lat_field) && !string.IsNullOrEmpty(lon_field))
             {
-                string dbname = ParentProject.database_name;
+                string dbname = ParentContainer.database_name;
                 SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
                 SqlCommand query = new SqlCommand();
                 query.Connection = dataconn;
-                query.CommandTimeout = 60;
+                query.CommandTimeout = 3000;
                 query.CommandType = CommandType.Text;
-                string cmd = "SELECT MIN(" + lat_field + ") AS MinLatitude, MIN(" + lon_field + ") AS MinLongitude, MAX(" + lat_field + ") AS MaxLatitude, MAX(" + lon_field + ") AS MaxLongitude FROM " + ParentProject.database_name + ".dbo." + SQLName;
+                string cmd = "SELECT MIN([" + lat_field + "]) AS MinLatitude, MIN([" + lon_field + "]) AS MinLongitude, MAX([" + lat_field + "]) AS MaxLatitude, MAX([" + lon_field + "]) AS MaxLongitude FROM [" + ParentContainer.database_name + "].dbo.[" + SQLName + "]";
+                cmd += " WHERE [" + lat_field + "] <= 90 AND [" + lat_field + "] >= -90 AND [" + lon_field + "] >= -180 AND [" + lon_field + "] <= 180";
                 query.CommandText = cmd;
                 SqlDataReader reader = query.ExecuteReader();
                 while (reader.Read())
@@ -418,17 +611,59 @@ namespace ESMERALDAClasses
                 Save(conn);
                 dataconn.Close();
             }
+            if (!string.IsNullOrEmpty(datetime_field))
+            {
+                try
+                {
+                    string dbname = ParentContainer.database_name;
+                    SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
+                    SqlCommand query = new SqlCommand();
+                    query.Connection = dataconn;
+                    query.CommandTimeout = 60;
+                    query.CommandType = CommandType.Text;
+                    string cmd = "SELECT DISTINCT DATEADD(dd, 0, DATEDIFF(dd, 0, [" + datetime_field + "])) AS timestamp_day FROM [" + ParentContainer.database_name + "].dbo.[" + SQLName + "]";
+                    query.CommandText = cmd;
+                    SqlDataReader reader = query.ExecuteReader();
+                    List<string> days = new List<string>();
+                    while (reader.Read())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            days.Add(reader[0].ToString());
+                        }
+                    }
+                    reader.Close();
+                    dataconn.Close();
+
+                    cmd = "DELETE FROM entity_datetime_map WHERE entity_id='" + ID.ToString() + "';";
+                    foreach (string s in days)
+                    {
+                        cmd += "INSERT INTO entity_datetime_map(entity_id, timestamp) VALUES ('" + ID.ToString() + "', '" + s + "');";
+                    }
+                    query = new SqlCommand();
+                    query.Connection = conn;
+                    query.CommandTimeout = 60;
+                    query.CommandType = CommandType.Text;
+                    query.CommandText = cmd;
+                    query.ExecuteNonQuery();
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (ParentContainer != null)
+                ParentContainer.UpdateBounds(conn);
         }
 
         public void GetFieldMinMax(Field inField, ref object outMin, ref object outMax)
         {
-            string dbname = ParentProject.database_name;
+            string dbname = ParentContainer.database_name;
             SqlConnection dataconn = Utils.ConnectToDatabase(dbname);
             SqlCommand query = new SqlCommand();
             query.Connection = dataconn;
             query.CommandTimeout = 60;
             query.CommandType = CommandType.Text;
-            string cmd = "SELECT MIN(" + inField.SQLColumnName + ") AS MinValue, MAX(" + inField.SQLColumnName + ") AS MaxValue FROM " + ParentProject.database_name + ".dbo." + SQLName;
+            string cmd = "SELECT MIN(" + inField.SQLColumnName + ") AS MinValue, MAX(" + inField.SQLColumnName + ") AS MaxValue FROM " + ParentContainer.database_name + ".dbo." + SQLName;
             query.CommandText = cmd;
             SqlDataReader reader = query.ExecuteReader();
             while (reader.Read())
@@ -476,10 +711,11 @@ namespace ESMERALDAClasses
             dataconn.Close();
         }
 
-        public DataTable BuildDataTable(DataTable data, int num_rows)
+        public DataTable BuildDataTable(DataTable data, int offset, int num_rows)
         {
             DataTable ret = new DataTable(GetMetadataValue("title"));
-            for (int i = 0; i < Header.Count; i++)
+            int i = 0;
+            for (i = 0; i < Header.Count; i++)
             {
                 Field f = (Field)Header[i];
                 if (f.IsSubfield)
@@ -524,30 +760,16 @@ namespace ESMERALDAClasses
                     ret.Columns.Add(newfield);
                 }
             }
-            int curr_row = -1;
-            int row = 0;
             DataRow newrow = null;
+            DataRow lastvaluerow = null;
             string datum = string.Empty;
             string sourcecol = string.Empty;
-            int curr_row_start = -1;
-            for (int i = 0; i < data.Rows.Count; i++)
+            i = offset;
+            if (i < 0)
+                i = 0;
+            while (i < num_rows + offset && i < data.Rows.Count)
             {
-                if (i % 1000 == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("Processing " + i.ToString() + " of " + data.Rows.Count.ToString());
-                }
-                row = (int)data.Rows[i]["RowNumber"];
-                if (row != curr_row)
-                {
-                    if (newrow != null)
-                        ret.Rows.Add(newrow);
-                    newrow = ret.NewRow();
-                    curr_row = row;
-                    curr_row_start = i;
-                    if (num_rows > 0 && curr_row > num_rows)
-                        break;
-                }
-                sourcecol = (string)data.Rows[i]["SourceColumnName"];
+                newrow = ret.NewRow();
                 DateTime dt_val;
                 TimeSpan ts_val;
                 double d_val;
@@ -556,12 +778,21 @@ namespace ESMERALDAClasses
                 Guid lon_guid = new Guid("22DDBCD9-E1AD-4348-823B-542E6577B735");
                 foreach (Field f in Header)
                 {
-                    if (f.SourceColumnName == sourcecol)
+                    if (f.IsSubfield)
+                        continue;
+                    if (data.Rows[i][f.SourceColumnName] == DBNull.Value)
                     {
-                        if (f.IsSubfield)
-                            break;
-
-                        datum = (string)data.Rows[i]["Data"];
+                        newrow[f.SQLColumnName] = DBNull.Value;
+                        continue;
+                    }
+                    datum = (string)data.Rows[i][f.SourceColumnName]; 
+                        
+                    if (f.IsTiered && string.IsNullOrEmpty(datum))
+                    {
+                        newrow[f.SQLColumnName] = lastvaluerow[f.SQLColumnName];
+                    }
+                    else
+                    {
                         if (f.DBType != Field.FieldType.Text && string.IsNullOrEmpty(datum))
                         {
                             newrow[f.SQLColumnName] = DBNull.Value;
@@ -592,7 +823,25 @@ namespace ESMERALDAClasses
                                             {
                                                 if (!DateTime.TryParse(datum, out dt_val))
                                                 {
-                                                    newrow[f.SQLColumnName] = DBNull.Value;
+                                                    if (datum.Length == 8)
+                                                    {
+                                                        string year = datum.Substring(0, 4);
+                                                        string month = datum.Substring(4, 2);
+                                                        string day = datum.Substring(6, 2);
+
+                                                        try
+                                                        {
+                                                            newrow[f.SQLColumnName] = new DateTime(int.Parse(year), int.Parse(month), int.Parse(day));
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            newrow[f.SQLColumnName] = DBNull.Value;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        newrow[f.SQLColumnName] = DBNull.Value;
+                                                    }                                                    
                                                 }
                                                 else
                                                 {
@@ -622,24 +871,11 @@ namespace ESMERALDAClasses
                                     }
                                     else
                                     {
-                                        int j = curr_row_start;
                                         string datum2 = string.Empty;
                                         TimeSpan timecomponent = TimeSpan.Zero;
                                         DateTime datecomponent = DateTime.MinValue;
 
-                                        while (j < data.Rows.Count)
-                                        {
-                                            if ((int)data.Rows[j]["RowNumber"] != row)
-                                            {
-                                                break;
-                                            }
-                                            if ((string)data.Rows[j]["SourceColumnName"] == f.Subfield.SourceColumnName)
-                                            {
-                                                datum2 = (string)data.Rows[j]["Data"];
-                                                break;
-                                            }
-                                            j += 1;
-                                        }
+                                        datum2 = (string)data.Rows[i][f.Subfield.SourceColumnName];
                                         if (f.DBType == Field.FieldType.DateTime)
                                         {
                                             if (f.FieldMetric.Name.IndexOf("Year Day") == 0)
@@ -652,7 +888,23 @@ namespace ESMERALDAClasses
                                             }
                                             else
                                             {
-                                                DateTime.TryParse(datum, out datecomponent);
+                                                if (!DateTime.TryParse(datum, out datecomponent))
+                                                {
+                                                    if (datum.Length == 8)
+                                                    {
+                                                        string year = datum.Substring(0, 4);
+                                                        string month = datum.Substring(4, 2);
+                                                        string day = datum.Substring(6, 2);
+
+                                                        try
+                                                        {
+                                                            datecomponent = new DateTime(int.Parse(year), int.Parse(month), int.Parse(day));
+                                                        }
+                                                        catch (Exception ex)
+                                                        {                                                           
+                                                        }
+                                                    }
+                                                }                                                
                                             }
                                         }
                                         else
@@ -679,7 +931,23 @@ namespace ESMERALDAClasses
                                             }
                                             else
                                             {
-                                                DateTime.TryParse(datum2, out datecomponent);
+                                                if (!DateTime.TryParse(datum2, out datecomponent))
+                                                {
+                                                    if (datum2.Length == 8)
+                                                    {
+                                                        string year = datum.Substring(0, 4);
+                                                        string month = datum.Substring(4, 2);
+                                                        string day = datum.Substring(6, 2);
+
+                                                        try
+                                                        {
+                                                            datecomponent = new DateTime(int.Parse(year), int.Parse(month), int.Parse(day));
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                         else
@@ -714,7 +982,7 @@ namespace ESMERALDAClasses
                                         }
                                         else
                                         {
-                                            newrow[f.SQLColumnName] = d_val;                                            
+                                            newrow[f.SQLColumnName] = d_val;
                                         }
                                     }
                                     else
@@ -743,12 +1011,18 @@ namespace ESMERALDAClasses
                                 System.Diagnostics.Debug.WriteLine(ex.Message + " " + ex.StackTrace);
                             }
                         }
-                        break;
+                    }
+                    if (lastvaluerow != null)
+                        lastvaluerow[f.SQLColumnName] = newrow[f.SQLColumnName];
+                    else
+                    {
+                        lastvaluerow = ret.NewRow();
+                        lastvaluerow.ItemArray = (object[])newrow.ItemArray.Clone();
                     }
                 }
-            }
-            if (newrow != null)
                 ret.Rows.Add(newrow);
+                i += 1;
+            }            
             return ret;
         }
 
@@ -757,7 +1031,7 @@ namespace ESMERALDAClasses
             SqlConnection conn = null;
             try
             {
-                conn = Utils.ConnectToDatabaseReadOnly(ParentProject.database_name);
+                conn = Utils.ConnectToDatabaseReadOnly(ParentContainer.database_name);
                 string cmd = "SELECT TOP(1) * FROM " + SQLName;
                 SqlCommand query = new SqlCommand()
                 {
@@ -774,20 +1048,20 @@ namespace ESMERALDAClasses
                         string col_type = reader.GetDataTypeName(i);
                         Field f = new Field();
                         f.SourceColumnName = col_name;
-                        f.SQLColumnName = col_name;
-                        f.Name = col_name;
+                        f.SQLColumnName = Utils.CreateDBName(col_name);
+                        f.Name = col_name.Replace("'", "").Replace("\"", "");
                         Guid field_guid = Guid.Empty;
-                        if (col_type == "int")
+                        if (col_type == "int" || col_type == "bigint" || col_type == "smallint")
                         {
                             f.DBType = Field.FieldType.Integer;
                             field_guid = Metric.GenericInt;
                         }
-                        else if (col_type == "float" || col_type == "numeric" || col_type == "real")
+                        else if (col_type == "float" || col_type == "numeric" || col_type == "real" || col_type == "decimal")
                         {
                             f.DBType = Field.FieldType.Decimal;
                             field_guid = Metric.GenericDecimal;
                         }
-                        else if (col_type == "varchar" || col_type == "nvarchar" || col_type == "uniqueidentifier")
+                        else if (col_type == "varchar" || col_type == "nvarchar" || col_type == "uniqueidentifier" || col_type == "char" || col_type == "nchar")
                         {
                             f.DBType = Field.FieldType.Text;
                             field_guid = Metric.GenericText;

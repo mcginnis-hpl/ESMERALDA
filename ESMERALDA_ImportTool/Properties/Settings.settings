@@ -1,0 +1,18 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="ESMERALDA_ImportTool.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="metadata_conn" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Server=10.1.13.205;Database=Gulf_Integrated_Spill_Research; User Id=SqlServer_Client; password= p@$$w0rd</Value>
+    </Setting>
+    <Setting Name="save_path" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">c:\TempImageFiles\</Value>
+    </Setting>
+    <Setting Name="link_path" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">http://foo.com/</Value>
+    </Setting>
+    <Setting Name="Setting" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+  </Settings>
+</SettingsFile>

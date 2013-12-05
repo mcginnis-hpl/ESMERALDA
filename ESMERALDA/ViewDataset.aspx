@@ -1,5 +1,6 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="ViewDataset.aspx.cs" Inherits="ESMERALDA.ViewDataset" %>
 
+<%@ Register TagPrefix="pc" TagName="PersonChooser" Src="~/PersonChooser.ascx" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
@@ -186,8 +187,8 @@
             var ap = document.getElementById(controlID);
             var popup = document.getElementById('fieldMetadataWindow');
             popup.style.display = '';
-            popup.style.top = (getOffset(ap).top + 20) + "px";
-            popup.style.left = (getOffset(ap).left + 20) + "px";
+            popup.style.top = (getOffset(ap).top) + "px";
+            popup.style.left = (getOffset(ap).left) + "px";
         }
 
         function addField(newfield) {
@@ -202,6 +203,20 @@
                 query.value = query.value + newfield;
             }
             query.focus();
+        }
+
+        function showSourceMetadata() {
+            var el = document.getElementById("source_metadata");
+            el.style.display = "";
+            var linkel = document.getElementById("showmetadatalink");
+            linkel.innerHTML = "<a class='squarebutton' href='javascript:hideSourceMetadata()'><span>Hide source metadata.</span></a>";
+        }
+
+        function hideSourceMetadata() {
+            var el = document.getElementById("source_metadata");
+            el.style.display = "none";
+            var linkel = document.getElementById("showmetadatalink");
+            linkel.innerHTML = "<a class='squarebutton' href='javascript:showSourceMetadata()'><span>Show source metadata.</span></a>";
         }
 
         function showHelp() {
@@ -219,20 +234,57 @@
         }
 
         function showSaveDialog() {
+            var ap = document.getElementById("saveanchor");
             var el = document.getElementById("downloadcontrols");
-            el.style.display = "inherit";
+            el.style.display = '';
+            el.style.top = (getOffset(ap).top) + "px";
+            el.style.left = (getOffset(ap).left) + "px";
         }
 
         function getOffset(el) {
             var _x = 0;
             var _y = 0;
-            while (el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {
+            while (el && el.tagName.toLowerCase() != 'body' && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {
                 _x += el.offsetLeft - el.scrollLeft;
                 _y += el.offsetTop - el.scrollTop;
-                el = el.parentNode;
+                el = el.offsetParent;
             }
             return { top: _y, left: _x };
         }
+
+        /*function getOffset(el) {
+        var _x = 0;
+        var _y = 0;
+        while (el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {                
+        _x += el.offsetLeft - el.scrollLeft;
+        _y += el.offsetTop - el.scrollTop;
+        if (el.id == "mainbody") {
+        break;
+        }
+        // chrome/safari
+        var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        var isSafari = /Safari/.test(navigator.userAgent) && /Apple Computer/.test(navigator.vendor);
+
+        if (isChrome || isSafari) {
+        el = el.parentNode;
+        } else {
+        // firefox/IE
+        el = el.offsetParent;
+        }
+        }
+        return { top: _y, left: _x };
+        }*/
+
+        /*function getOffset(el) {
+        var _x = 0;
+        var _y = 0;
+        while (el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {
+        _x += el.offsetLeft - el.scrollLeft;
+        _y += el.offsetTop - el.scrollTop;
+        el = el.parentNode;
+        }
+        return { top: _y, left: _x };
+        }*/
 
         function hideSaveDialog() {
             var el = document.getElementById("downloadcontrols");
@@ -241,12 +293,13 @@
 
     </script>
 </head>
-<body onload='initalizeParent()'>
+<body onload='initalizeParent()' id="mainbody">
     <form id="form1" runat="server">
     <div id="page_wrapper">
         <div id="pagecontent">
             <h4>
                 View a Dataset</h4>
+            <span id="breadcrumb" runat="server"></span>
             <div class="clearfix">
                 <span id="showhelplink"><a class='squarebutton' href='javascript:showHelp()'><span>Show
                     help.</span></a></span>
@@ -311,7 +364,102 @@
                             <asp:Label ID="lblViewSQLName" runat="server" Text=""></asp:Label>
                         </td>
                     </tr>
+                    <tr>
+                        <td>
+                            Is Public:
+                        </td>
+                        <td>
+                            <asp:CheckBox ID="chkIsPublic" runat="server" />
+                        </td>
+                    </tr>
                 </table>
+            </div>
+            <div>
+                <div class="clearfix">
+                    <span id="showmetadatalink"><a class='squarebutton' href='javascript:showSourceMetadata()'>
+                        <span>Show source metadata.</span></a></span>
+                </div>
+                <div id="source_metadata" runat="server" style="display: none">
+                    <br />
+                    <table border="0">
+                        <tr>
+                            <td>
+                                Name:
+                            </td>
+                            <td id="txtMetadata_Name" runat="server">
+                            </td>
+                            <td>
+                                Short Description:
+                            </td>
+                            <td id="txtMetadata_ShortDescription" runat="server">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Description:
+                            </td>
+                            <td colspan="3" id="txtMetadata_Description" runat="server">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Dataset URL:
+                            </td>
+                            <td colspan="3" id="txtMetadata_URL" runat="server">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Acquisition Description:
+                            </td>
+                            <td colspan="3" runat="server" id="txtMetadata_Acquisition">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Processing Description:
+                            </td>
+                            <td colspan="3" runat="server" id="txtMetadata_Processing">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Keywords (comma-separated):
+                            </td>
+                            <td colspan="3" id="txtKeywords" runat="server">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Dataset ID:
+                            </td>
+                            <td>
+                                <asp:Label ID="lblMetadata_DatasetID" runat="server" Text=""></asp:Label>
+                            </td>
+                            <td>
+                                Project:
+                            </td>
+                            <td>
+                                <asp:Label ID="lblMetadata_Project" runat="server" Text=""></asp:Label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <asp:CheckBox ID="chkSourceIsPublic" Text="Dataset is Public" runat="server" ReadOnly="true" />
+                            </td>
+                            <td colspan="2">
+                                People:<br />
+                                <pc:PersonChooser ID="chooser" runat="server" ReadOnly="true" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4">
+                                <div id="additional_metadata" runat="server" style="width: 100%">
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
             <div id="filters">
                 <asp:Table ID="filterTable" runat="server">
@@ -319,10 +467,10 @@
                 <asp:Table ID="controlmenu" runat="server" border="0px" CssClass="inlinemenu">
                     <asp:TableRow>
                         <asp:TableCell>
-                            <asp:LinkButton ID="btnAddColumn" runat="server" OnClick="btnAddColumn_Click" CssClass="squarebutton"><span>Add Derived Column</span></asp:LinkButton>
+                            <asp:LinkButton ID="btnUpdate" runat="server" OnClick="btnUpdate_Click" CssClass="squarebutton"><span>Update View</span></asp:LinkButton>
                         </asp:TableCell>
                         <asp:TableCell>
-                            <asp:LinkButton ID="btnUpdate" runat="server" OnClick="btnUpdate_Click" CssClass="squarebutton"><span>Update View</span></asp:LinkButton>
+                            <asp:LinkButton ID="btnAddColumn" runat="server" OnClick="btnAddColumn_Click" CssClass="squarebutton"><span>Add Derived Column</span></asp:LinkButton>
                         </asp:TableCell>
                     </asp:TableRow>
                 </asp:Table>
@@ -419,8 +567,21 @@
             </div>
             <iframe id="testdatapreview" runat="server" style="width: 100%; height: 480px; overflow: scroll">
             </iframe>
+            <div id="downloads" runat="server">
+                <table border="0">
+                    <tr>
+                        <td>
+                            Attached Files:
+                        </td>
+                        <td>
+                            <div id="filedownloadlink" runat="server">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
             <span id="errormessage" runat="server"></span>
-            <div id="downloadcontrols" class="downloadmenu">
+            <div id="downloadcontrols" class="downloadmenu" runat="server">
                 <span id="spanDownloadCSV" runat="server"></span>
             </div>
             <asp:HiddenField ID="viewValues" runat="server" />

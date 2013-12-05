@@ -7,17 +7,64 @@
 
     public class EsmeraldaEntity
     {
+        public enum MetadataFormat
+        {
+            XML = 0,
+            BCODMO = 2,
+            FGDC = 4
+        };
         public Guid ID = Guid.Empty;
         public Person Owner = null;
         public DateTime Timestamp = DateTime.MinValue;
         public bool IsPublic = true;
-        protected Dictionary<string, List<string>> Metadata;
+        public Dictionary<string, List<string>> Metadata;
         public List<PersonRelationship> Relationships;
+        public EsmeraldaEntity ParentEntity;
+        public List<AttachedFile> attachments;
 
         public EsmeraldaEntity()
         {
             Metadata = new Dictionary<string, List<string>>();
             Relationships = new List<PersonRelationship>();
+            ParentEntity = null;
+            attachments = new List<AttachedFile>();
+        }
+
+        public List<Person> GetEligibleUsers(SqlConnection conn)
+        {
+            List<Person> ret = new List<Person>();
+            if (ParentEntity == null)
+            {
+                List<Guid> peopleid_list = new List<Guid>();
+                SqlCommand query = new SqlCommand
+                {
+                    CommandType = CommandType.StoredProcedure,
+                    CommandText = "sp_ESMERALDA_GetPersonList",
+                    CommandTimeout = 60,
+                    Connection = conn
+                };
+                SqlDataReader reader = query.ExecuteReader();
+                Guid personid = Guid.Empty;
+                while (reader.Read())
+                {
+                    peopleid_list.Add(new Guid(reader["personid"].ToString()));
+                }
+                reader.Close();
+                foreach (Guid g in peopleid_list)
+                {
+                    Person p = new Person();
+                    p.Load(conn, g);
+                    ret.Add(p);
+                }
+            }
+            else
+            {
+                foreach (PersonRelationship p in ParentEntity.Relationships)
+                {
+                    ret.Add(p.person);
+                }
+            }
+            return ret;
         }
 
         public string GetMetadataValue(string inKey)
@@ -45,6 +92,21 @@
             else
             {
                 Metadata[inKey][0] = inValue;
+            }
+        }
+
+        public void SetMetadataValueArray(string inKey, string[] inValue)
+        {
+            if (!Metadata.ContainsKey(inKey))
+            {
+                List<string> val = new List<string>();
+                val.AddRange(inValue);
+                Metadata.Add(inKey, val);
+            }
+            else
+            {
+                Metadata[inKey].Clear();
+                Metadata[inKey].AddRange(inValue);
             }
         }
 
@@ -159,7 +221,36 @@
             {
                 pr.person = new Person();
                 pr.person.Load(conn, pr.temp_personid);
-            }            
+            }
+
+            // The attached files
+            query = new SqlCommand()
+            {
+                Connection = conn,
+                CommandText = "sp_ESMERALDA_loadattachedfiles",
+                CommandType = CommandType.StoredProcedure
+            };
+            query.Parameters.Add(new SqlParameter("@inentityid", ID));
+            reader = query.ExecuteReader();
+            attachments = new List<AttachedFile>();
+            while (reader.Read())
+            {
+                AttachedFile f = new AttachedFile();
+                if (!reader.IsDBNull(reader.GetOrdinal("attachedfileid")))
+                {
+                    f.ID = new Guid(reader["attachedfileid"].ToString());
+                }
+                if (!reader.IsDBNull(reader.GetOrdinal("filepath")))
+                {
+                    f.Path = reader["filepath"].ToString();
+                }
+                if (!reader.IsDBNull(reader.GetOrdinal("filename")))
+                {
+                    f.Filename = reader["filename"].ToString();
+                }
+                attachments.Add(f);
+            }
+            reader.Close();
         }
 
         public virtual void Save(SqlConnection conn)
@@ -185,7 +276,7 @@
             {
                 foreach (string val in Metadata[tag])
                 {
-                    cmd = cmd + "INSERT INTO entity_metadata (entity_id, metadata_tag, metadata_value) VALUES ('" + this.ID.ToString() + "', '" + tag + "', '" + val +"');";
+                    cmd = cmd + "INSERT INTO entity_metadata (entity_id, metadata_tag, metadata_value) VALUES ('" + this.ID.ToString() + "', '" + tag + "', '" + val.Replace("'", "''") +"');";
                 }
             }
             if (!string.IsNullOrEmpty(cmd))
@@ -212,6 +303,15 @@
             {
                 p.Save(conn, this.ID);
             }
+            foreach (AttachedFile f in attachments)
+            {
+                f.Save(conn, this.ID);
+            }
+        }
+
+        public virtual string GetMetadata(MetadataFormat format)
+        {
+            return string.Empty;
         }
     }
 }

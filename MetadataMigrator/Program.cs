@@ -533,7 +533,55 @@ namespace MetadataMigrator
                 d.Save(conn);
             }
         }
-    
+
+        static void UpdateBounds(SqlConnection conn)
+        {
+            List<Metric> metrics = Metric.LoadExistingMetrics(conn);
+            List<Conversion> conversions = Conversion.LoadAll(conn, metrics);
+
+            string cmd = "SELECT dataset_id FROM dataset_metadata";
+            SqlCommand query = new SqlCommand()
+            {
+                Connection = conn,
+                CommandType = CommandType.Text,
+                CommandText = cmd
+            };
+            SqlDataReader reader = query.ExecuteReader();
+            List<Guid> ids = new List<Guid>();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(reader.GetOrdinal("dataset_id")))
+                    ids.Add(new Guid(reader["dataset_id"].ToString()));
+            }
+            reader.Close();
+            foreach(Guid id in ids)
+            {
+                Dataset d = new Dataset();
+                d.Load(conn, id, conversions, metrics);
+                Console.WriteLine("Processing: " + d.GetMetadataValue("title"));
+                d.UpdateBounds(conn);
+                d.Save(conn);
+            }
+            reader.Close();
+        }
+
+        static void UpdateBounds(SqlConnection conn, Guid datasetid)
+        {
+            List<Metric> metrics = Metric.LoadExistingMetrics(conn);
+            List<Conversion> conversions = Conversion.LoadAll(conn, metrics);
+
+           
+            List<Guid> ids = new List<Guid>();
+            ids.Add(datasetid);
+            foreach (Guid id in ids)
+            {
+                Dataset d = new Dataset();
+                d.Load(conn, id, conversions, metrics);
+                Console.WriteLine("Processing: " + d.GetMetadataValue("title"));
+                d.UpdateBounds(conn);
+                d.Save(conn);
+            }
+        }
         static void Main(string[] args)
         {
             string connstring = "Server=10.1.13.205;Database=Repository_Metadata; User Id=SqlServer_Client; password= p@$$w0rd";
@@ -544,7 +592,9 @@ namespace MetadataMigrator
             // MigrateDatasetMetadata(conn);
             // MigrateFieldMetadata(conn);
             // MigratePersonMetadata(conn);
-            UpdateDatasetEntities(conn);
+            // UpdateDatasetEntities(conn);
+            UpdateBounds(conn, new Guid("b0a3e752-f02b-40e7-9967-70183e9993a0"));
+            // UpdateBounds(conn);
             conn.Close();
         }
     }

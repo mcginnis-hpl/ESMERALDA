@@ -14,7 +14,7 @@
             <div id="login" runat="server">
                 <h3>
                     Existing Users</h3>
-                    <p>Type in your assigned username and password below.  If you do not have a username and password, <a href='mailto:smcginnis@umces.edu??subject=ESMERALDA Account Request'>please click here to request one.</a>  Keep in mind that you do not need a login to view or download data.</p>
+                    <p>Type in your assigned username and password below.  If you do not have a username and password, <a href='mailto:smcginnis@umces.edu??subject=Account Request'>please click here to request one.</a>  Keep in mind that you do not need a login to view or download data.</p>
                 <table border="0px">
                     <tr>
                         <td>
@@ -189,13 +189,23 @@
                 </table>
                     <table class="inlinemenu">
                     <tr>
+                        <td id="celllogout" runat="server">
+                            <asp:LinkButton ID="btnLogout" runat="server" CssClass="squarebutton" 
+                                onclick="btnLogout_Click"><span>Log out</span></asp:LinkButton>
+                        </td>
                         <td>
                             <asp:LinkButton ID="btnSave" runat="server" OnClick="btnSave_Click" CssClass="squarebutton"><span>Save Information</span></asp:LinkButton>
                         </td>
                         <td>
                             <asp:LinkButton ID="btnNewUser" runat="server" onclick="btnNewUser_Click" CssClass="squarebutton"><span>Create a new User</span></asp:LinkButton>
                         </td>
-                        <td colspan="4">
+                        <td>
+                        Edit an existing user: 
+                            <asp:DropDownList ID="comboUserList" AutoPostBack="true" runat="server" 
+                                onselectedindexchanged="comboUserList_SelectedIndexChanged">
+                            </asp:DropDownList>
+                        </td>
+                        <td>
                         </td>
                     </tr>
                     </table>

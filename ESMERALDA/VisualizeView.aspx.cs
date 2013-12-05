@@ -7,6 +7,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using ESMERALDAClasses;
 using System.Text;
+using System.Web.UI.DataVisualization.Charting;
 
 namespace ESMERALDA
 {
@@ -25,164 +26,194 @@ namespace ESMERALDA
             }
             if (!string.IsNullOrEmpty(viewid))
             {
-                working = (ESMERALDAClasses.View)base.GetSessionValue("View-" + viewid);
+                working = (ESMERALDAClasses.View)base.GetSessionValueCrossPage("View-" + viewid);
                 if(working != null)
                     PopulateControls(working);
+            }
+            if (!IsPostBack)
+            {
+                // bind chart type names to ddl
+                comboGraphType.DataSource = Enum.GetNames(typeof(System.Web.UI.DataVisualization.Charting.SeriesChartType));
+                comboGraphType.DataBind();
             }
         }
 
         protected void PopulateControls(ESMERALDAClasses.View inView)
         {
-            string xaxis_value = string.Empty;
-            if (comboXAxis.SelectedValue != null)
-                xaxis_value = comboXAxis.SelectedValue;
-            string yaxis_value = string.Empty;
-            if (comboYAxis.SelectedValue != null)
-                yaxis_value = comboYAxis.SelectedValue;
-            string field1_value = string.Empty;
-            if (comboField1.SelectedValue != null)
-                field1_value = comboField1.SelectedValue;
-            string field2_value = string.Empty;
-            if (comboField2.SelectedValue != null)
-                field2_value = comboField2.SelectedValue;
-            string field3_value = string.Empty;
-            if (comboField3.SelectedValue != null)
-                field3_value = comboField3.SelectedValue;
-            string field4_value = string.Empty;
-            if (comboField4.SelectedValue != null)
-                field4_value = comboField4.SelectedValue;
-
-            comboXAxis.Items.Clear();
-            comboYAxis.Items.Clear();
-            comboField1.Items.Clear();
-            comboField1.Items.Add(new ListItem(string.Empty, string.Empty));
-            comboField2.Items.Clear();
-            comboField2.Items.Add(new ListItem(string.Empty, string.Empty));
-            comboField3.Items.Clear();
-            comboField3.Items.Add(new ListItem(string.Empty, string.Empty));
-            comboField4.Items.Clear();
-            comboField4.Items.Add(new ListItem(string.Empty, string.Empty));
-
-            comboXAxis.Items.Add(new ListItem(string.Empty, string.Empty));
-            comboYAxis.Items.Add(new ListItem(string.Empty, string.Empty));
-
-            foreach (ViewCondition vc in inView.Header)
+            if (listAvailableFields.Items.Count == 0)
             {
-                if(vc.DBType != Field.FieldType.Decimal && vc.DBType != Field.FieldType.Integer && vc.DBType != Field.FieldType.DateTime)
-                    continue;
-
-                ListItem li = new ListItem(vc.Name, vc.Name);
-                comboXAxis.Items.Add(li);
-
-                if (vc.Name == xaxis_value)
-                    comboXAxis.SelectedIndex = comboXAxis.Items.Count - 1;
-
-                li = new ListItem(vc.Name, vc.Name);
-                comboYAxis.Items.Add(li);
-
-                if (vc.Name == yaxis_value)
-                    comboYAxis.SelectedIndex = comboYAxis.Items.Count - 1;
-
-                li = new ListItem(vc.Name, vc.Name);
-                comboField1.Items.Add(li);
-
-                if (vc.Name == field1_value)
-                    comboField1.SelectedIndex = comboField1.Items.Count - 1;
-
-                li = new ListItem(vc.Name, vc.Name);
-                comboField2.Items.Add(li);
-
-                if (vc.Name == field2_value)
-                    comboField2.SelectedIndex = comboField2.Items.Count - 1;
-
-                li = new ListItem(vc.Name, vc.Name);
-                comboField3.Items.Add(li);
-
-                if (vc.Name == field3_value)
-                    comboField3.SelectedIndex = comboField3.Items.Count - 1;
-
-                li = new ListItem(vc.Name, vc.Name);
-                comboField4.Items.Add(li);
-
-                if (vc.Name == field4_value)
-                    comboField4.SelectedIndex = comboField4.Items.Count - 1;
+                foreach (QueryField f in inView.Header)
+                {
+                    ListItem li = new ListItem();
+                    li.Text = f.Name;
+                    li.Value = f.SQLColumnName;
+                    listAvailableFields.Items.Add(li);
+                }
             }
-            chartType.Value = comboGraphType.SelectedValue;
+            listSelectedFields.Items.Clear();
+            if (!string.IsNullOrEmpty(fieldValues.Value))
+            {
+                char[] delim = {'|'};
+                string[] tokens = fieldValues.Value.Split(delim);
+                string[] colors = colorValues.Value.Split(delim);
+                string[] series = seriesValues.Value.Split(delim);
+                for(int i=0; i < tokens.Length; i++)
+                {
+                    string t = tokens[i];
+                    foreach (QueryField f in inView.Header)
+                    {
+                        if (f.SQLColumnName == t)
+                        {
+                            ListItem li = new ListItem();
+                            li.Text = f.Name + ": " + colors[i];
+                            if (series[i] == "1")
+                            {
+                                li.Text += "*";
+                            }
+                            li.Value = f.SQLColumnName;
+                            listSelectedFields.Items.Add(li);                            
+                            break;
+                        }
+                    }
+                }
+            }
         }
-
-        protected void PopulateData(ESMERALDAClasses.View working, string plot_type, List<string> fields)
+        
+        protected void PopulateData_MS(ESMERALDAClasses.View working, string plot_type, List<string> fields, List<string> colors, List<bool> series)
         {
             string ret = string.Empty;
-            string dbname = working.SourceData.ParentProject.database_name;
-            SqlConnection conn = base.ConnectToDatabaseReadOnly(dbname);
-            int numrows = -1;
-            chartType.Value = plot_type;
-            labels.Value = string.Empty;
-            types.Value = string.Empty;
+            string dbname = working.SourceData.ParentContainer.database_name;
+            SqlConnection conn = base.ConnectToDatabaseReadOnly(dbname);            
 
-            List<ViewCondition> vcs = new List<ViewCondition>();
-            foreach (string s in fields)
+            DataTable dt = working.GetDataTable(conn);            
+            QueryField f = working.GetFieldBySQLName(fields[0]);
+            string x_axis = f.SQLColumnName;
+            msChart.Series.Clear();
+            msChart.Legends.Clear();
+            msChart.ChartAreas["ChartArea1"].AxisX.Title = f.Name;
+            if (f.DBType == Field.FieldType.Text)
             {
-                foreach (ViewCondition vc in working.Header)
+                msChart.ChartAreas["ChartArea1"].AxisX.Interval = 1;
+            }
+            if (f.DBType == Field.FieldType.Text || f.DBType == Field.FieldType.DateTime)
+            {
+                msChart.ChartAreas["ChartArea1"].AxisX.LabelStyle.Angle = 90;
+            }
+            Series s = null;
+            bool has_series = false;
+            for (int i = 1; i < fields.Count; i++)
+            {
+                if (series[i])
                 {
-                    if (vc.Name == s)
-                    {
-                        vcs.Add(vc);
-                        if (string.IsNullOrEmpty(labels.Value))
-                        {
-                            labels.Value = s;
-                            types.Value = Field.GetFieldTypeName(vc.DBType);
-                        }
-                        else
-                        {
-                            labels.Value = labels.Value + "~" + s;
-                            types.Value = types.Value + "~" + Field.GetFieldTypeName(vc.DBType);
-                        }
-                    }
+                    has_series = true;
+                    break;
                 }
             }
 
-            string value_string = string.Empty;
-
-            string cmd = working.GetQuery(numrows);
-            string xval = string.Empty;
-            StringBuilder sb = new StringBuilder();
-            if (!string.IsNullOrEmpty(cmd))
+            if (has_series)
             {
-                SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
-                while (reader.Read())
+                Random r = new Random();
+                QueryField series_field = null;
+                for (int i = 0; i < series.Count; i++)
                 {
-                    string row = string.Empty;
-
-                    foreach (ViewCondition vc in vcs)
-                    {
-                        xval = string.Empty;
-                        if (!reader.IsDBNull(reader.GetOrdinal(vc.SQLColumnName)))
-                        {
-                            if (vc.CondConversion != null)
-                            {
-                                xval = (vc.CondConversion.DestinationMetric.Format(reader[vc.SQLColumnName].ToString()));
-                            }
-                            else
-                            {
-                                xval = (vc.SourceField.FieldMetric.Format(reader[vc.SQLColumnName].ToString()));
-                            }                            
-                        }
-                        if (string.IsNullOrEmpty(row))
-                            row = xval;
-                        else
-                            row += "," + xval;
-                    }
-                    if (sb.Length > 0)
-                    {
-                        sb.Append(";");
-                    }
-                    sb.Append(row);
+                    if(series[i])
+                        series_field = working.GetFieldBySQLName(fields[i]);
                 }
-                reader.Close();
+
+                List<string> series_list = new List<string>();
+                foreach (DataRow dr in dt.Rows)
+                {
+                    if (!series_list.Contains(dr[series_field.SQLColumnName].ToString()))
+                        series_list.Add(dr[series_field.SQLColumnName].ToString());
+                }
+                for(int i=1; i < fields.Count; i++)
+                {
+                    if(fields[i] == series_field.SQLColumnName)
+                        continue;
+                    f = working.GetFieldBySQLName(fields[i]);  
+                    msChart.ChartAreas["ChartArea1"].AxisY.Title = f.Name;                                        
+                    Dictionary<string, Series> chart_series = new Dictionary<string, Series>();
+                    foreach(DataRow dr in dt.Rows)
+                    {
+                        s = null;
+                        if (!chart_series.ContainsKey((string)dr[series_field.SQLColumnName]))
+                        {
+                            s = new Series();
+                            s.Name = (string)dr[series_field.SQLColumnName];
+                            s.ChartType = (System.Web.UI.DataVisualization.Charting.SeriesChartType)Enum.Parse(typeof(System.Web.UI.DataVisualization.Charting.SeriesChartType), comboGraphType.SelectedValue);
+                            s.XValueMember = x_axis;
+                            s.YValueMembers = f.SQLColumnName;
+                            int seed_int = r.Next(0, 0x1000000);
+                            s.Color = System.Drawing.ColorTranslator.FromHtml(Utils.ToColor(seed_int));
+                            chart_series.Add(s.Name, s);
+                        }
+                        else
+                        {
+                            s = chart_series[(string)dr[series_field.SQLColumnName]];
+                        }
+                        s.Points.AddXY(dr[x_axis], dr[f.SQLColumnName]);
+                    }
+                    foreach (string s1 in series_list)
+                    {
+                        if (!chart_series.ContainsKey(s1))
+                        {
+                            s = new Series();
+                            s.Name = s1;
+                            s.ChartType = (System.Web.UI.DataVisualization.Charting.SeriesChartType)Enum.Parse(typeof(System.Web.UI.DataVisualization.Charting.SeriesChartType), comboGraphType.SelectedValue);
+                            s.XValueMember = x_axis;
+                            s.YValueMembers = f.SQLColumnName;
+                            int seed_int = r.Next(0, 0x1000000);
+                            s.Color = System.Drawing.ColorTranslator.FromHtml(Utils.ToColor(seed_int));
+                            chart_series.Add(s.Name, s);
+                        }
+                        s = chart_series[s1];
+                        msChart.Series.Add(s);
+                    }
+                }
+            }
+            else
+            {
+                msChart.DataSource = dt;            
+                for (int i = 1; i < fields.Count; i++)
+                {
+                    f = working.GetFieldBySQLName(fields[i]);
+                    s = new Series();
+                    s.Name = x_axis + " v " + f.SQLColumnName;
+                    s.ChartType = (System.Web.UI.DataVisualization.Charting.SeriesChartType)Enum.Parse(typeof(System.Web.UI.DataVisualization.Charting.SeriesChartType), comboGraphType.SelectedValue);                    
+                    s.XValueMember = x_axis;
+                    s.YValueMembers = f.SQLColumnName;
+                    msChart.ChartAreas["ChartArea1"].AxisY.Title = f.Name;
+                    s.Color = System.Drawing.ColorTranslator.FromHtml(colors[0]);
+                    msChart.Series.Add(s);
+                }
+            }
+            int width = Request.Browser.ScreenPixelsWidth;
+            int height = Request.Browser.ScreenPixelsHeight;
+            char[] delim = {','};
+            if (!string.IsNullOrEmpty(pageWidth.Value))
+            {
+                try{
+                    string[] tokens = pageWidth.Value.Split(delim);
+                    if (tokens.Length > 1)
+                    {
+                        width = int.Parse(tokens[0]);
+                        height = int.Parse(tokens[1]);
+                    }                
+                }
+                catch(FormatException)
+                {
+                    width = Request.Browser.ScreenPixelsWidth;
+                    height = Request.Browser.ScreenCharactersHeight;
+                }
+            }
+            msChart.Width = Unit.Pixel((80 * width) / 100);
+            msChart.Height = Unit.Pixel((80 * height) / 100);
+            msChart.Legends.Add(new Legend());
+            if (!has_series)
+            {
+                msChart.DataBind();
             }
             conn.Close();
-            points.Value = sb.ToString();
         }
 
         protected void btnCreateGraph_Click(object sender, EventArgs e)
@@ -199,48 +230,39 @@ namespace ESMERALDA
             }
             if (!string.IsNullOrEmpty(viewid))
             {
-                working = (ESMERALDAClasses.View)base.GetSessionValue("View-" + viewid);
+                working = (ESMERALDAClasses.View)base.GetSessionValueCrossPage("View-" + viewid);
             }
             List<string> fields = new List<string>();
-            if (working != null)
+            List<string> colors = new List<string>();
+            List<bool> series = new List<bool>();
+            string[] fields_array = fieldValues.Value.Split("|".ToCharArray());
+            string[] colors_array = colorValues.Value.Split("|".ToCharArray());
+            string[] series_array = seriesValues.Value.Split("|".ToCharArray());
+
+            fields.AddRange(fields_array);
+            Random r = new Random();                        
+            int seed_int = 0;
+            string color = string.Empty;
+            for (int i = 0; i < colors_array.Length; i++)
             {
-                if (plot_type == "SCATTER")
+                if (series_array[i] == "1")
                 {
-                    fields.Add(comboXAxis.SelectedValue);
-                    fields.Add(comboYAxis.SelectedValue);
-                    PopulateData(working, plot_type, fields);                    
+                    series.Add(true);
                 }
-                else if (plot_type == "LINE")
+                else
                 {
-                    fields.Add(comboXAxis.SelectedValue);
-                    fields.Add(comboYAxis.SelectedValue);
-                    PopulateData(working, plot_type, fields);                    
+                    series.Add(false);
                 }
-                else if (plot_type == "COLUMN")
+                if (!string.IsNullOrEmpty(colors_array[i]))
+                    colors.Add(colors_array[i]);
+                else
                 {
-                    if(!string.IsNullOrEmpty(comboField1.SelectedValue))
-                        fields.Add(comboField1.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField2.SelectedValue))
-                        fields.Add(comboField2.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField3.SelectedValue))
-                        fields.Add(comboField3.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField4.SelectedValue))
-                        fields.Add(comboField4.SelectedValue);
-                    PopulateData(working, plot_type, fields);
+                    seed_int = r.Next(0, 0x1000000);
+                    color = Utils.ToColor(seed_int);
+                    colors.Add(color);
                 }
-                else if (plot_type == "BAR")
-                {
-                    if (!string.IsNullOrEmpty(comboField1.SelectedValue))
-                        fields.Add(comboField1.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField2.SelectedValue))
-                        fields.Add(comboField2.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField3.SelectedValue))
-                        fields.Add(comboField3.SelectedValue);
-                    if (!string.IsNullOrEmpty(comboField4.SelectedValue))
-                        fields.Add(comboField4.SelectedValue);
-                    PopulateData(working, plot_type, fields);
-                }
-            }
+            }                                  
+            PopulateData_MS(working, plot_type, fields, colors, series);
         }
     }
 }

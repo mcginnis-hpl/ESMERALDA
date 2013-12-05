@@ -9,6 +9,7 @@
     <script src="scripts/esmeralda.js" type="text/javascript" language="javascript"></script>
     <script type="text/javascript" language="javascript">
         function populateMetrics(input_value) {
+            var selectedMetric = document.getElementById("selectedMetric");
             var type_control = document.getElementById("comboRowType");
             var selected_type = type_control.value;
 
@@ -17,7 +18,7 @@
 
             while (dropdown.options.length > 0) {
                 dropdown.options.remove(0);
-            }
+            }            
 
             var opt = document.createElement("option");
             opt.text = "";
@@ -49,12 +50,13 @@
                 dropdown.options.add(opt);
                 if (opt.value == selected_value) {
                     dropdown.selectedIndex = dropdown.options.length - 1;
+                    selectedMetric.value = selected_value;            
                 }
                 if (opt.value == input_value) {
                     dropdown.selectedIndex = dropdown.options.length - 1;
-                    selectedMetric = input_value;
+                    selectedMetric.value = input_value;
                 }
-            }
+            }            
         }
 
         function copyMetric() {
@@ -79,194 +81,11 @@
 <body onload='initalizeParent()'>
     <form id="form1" runat="server">
     <div id="page_wrapper">
-        <div id="pagecontent">
-            <div id="program">
-                <h4>
-                    Program metadata:</h4>
-                <table border="1px">
-                    <tr>
-                        <td>
-                            Name:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_Name" runat="server"></asp:TextBox>
-                        </td>
-                        <td>
-                            Acronym:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_Acronym" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Description
-                        </td>
-                        <td colspan="3">
-                            <asp:TextBox ID="txtProgram_Description" runat="server" Width="600px"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            URL:
-                        </td>
-                        <td colspan="3">
-                            <asp:TextBox ID="txtProgram_URL" runat="server" Width="597px"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Start Date:
-                        </td>
-                        <td>
-                            <cc1:DatePicker ID="controlStartDate" runat="server" AutoPostBack="true" Width="100px"
-                                PaneWidth="150px">
-                                <PaneTableStyle BorderColor="#707070" BorderWidth="1px" BorderStyle="Solid" />
-                                <PaneHeaderStyle BackColor="#0099FF" />
-                                <TitleStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevMonthStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevYearStyle ForeColor="#E0E0E0" Font-Bold="true" />
-                                <DayHeaderStyle BackColor="#E8E8E8" />
-                                <TodayStyle BackColor="#FFFFCC" ForeColor="#000000" Font-Underline="false" BorderColor="#FFCC99" />
-                                <AlternateMonthStyle BackColor="#F0F0F0" ForeColor="#707070" Font-Underline="false" />
-                                <MonthStyle BackColor="" ForeColor="#000000" Font-Underline="false" />
-                            </cc1:DatePicker>
-                        </td>
-                        <td>
-                            End Date:
-                        </td>
-                        <td>
-                            <cc1:DatePicker ID="controlEndDate" runat="server" AutoPostBack="true" Width="100px"
-                                PaneWidth="150px">
-                                <PaneTableStyle BorderColor="#707070" BorderWidth="1px" BorderStyle="Solid" />
-                                <PaneHeaderStyle BackColor="#0099FF" />
-                                <TitleStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevMonthStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevYearStyle ForeColor="#E0E0E0" Font-Bold="true" />
-                                <DayHeaderStyle BackColor="#E8E8E8" />
-                                <TodayStyle BackColor="#FFFFCC" ForeColor="#000000" Font-Underline="false" BorderColor="#FFCC99" />
-                                <AlternateMonthStyle BackColor="#F0F0F0" ForeColor="#707070" Font-Underline="false" />
-                                <MonthStyle BackColor="" ForeColor="#000000" Font-Underline="false" />
-                            </cc1:DatePicker>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Logo URL:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_LogoURL" runat="server"></asp:TextBox>
-                        </td>
-                        <td>
-                            Small Logo URL:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_SmallLogoURL" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Program ID:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_ID" runat="server" OnTextChanged="txtProgram_ID_TextChanged" AutoPostBack="true"></asp:TextBox>
-                        </td>
-                        <td>
-                            Database Name:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProgram_DatabaseName" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
-                </table>
-                <br />
-                <div class="inlinemenu"><asp:LinkButton ID="btnSaveProgram" runat="server" OnClick="btnSaveProgram_Click" CssClass="squarebutton"><span>Save Metadata</span></asp:LinkButton></div>
-                <br /><br />
-            </div>
+        <div id="pagecontent">            
             <div id="project">
                 <h4>
                     Project metadata:</h4>
-                <table border="1px">
-                    <tr>
-                        <td>
-                            Name:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProject_Name" runat="server" Width="249px"></asp:TextBox>
-                        </td>
-                        <td>
-                            Acronym:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProject_Acronym" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Description
-                        </td>
-                        <td colspan="3">
-                            <asp:TextBox ID="txtProject_Description" runat="server" Width="476px"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            URL:
-                        </td>
-                        <td colspan="3">
-                            <asp:TextBox ID="txtProject_URL" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Start Date:
-                        </td>
-                        <td>
-                            <cc1:DatePicker ID="projectStartDate" runat="server" AutoPostBack="true" Width="100px"
-                                PaneWidth="150px">
-                                <PaneTableStyle BorderColor="#707070" BorderWidth="1px" BorderStyle="Solid" />
-                                <PaneHeaderStyle BackColor="#0099FF" />
-                                <TitleStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevMonthStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevYearStyle ForeColor="#E0E0E0" Font-Bold="true" />
-                                <DayHeaderStyle BackColor="#E8E8E8" />
-                                <TodayStyle BackColor="#FFFFCC" ForeColor="#000000" Font-Underline="false" BorderColor="#FFCC99" />
-                                <AlternateMonthStyle BackColor="#F0F0F0" ForeColor="#707070" Font-Underline="false" />
-                                <MonthStyle BackColor="" ForeColor="#000000" Font-Underline="false" />
-                            </cc1:DatePicker>
-                        </td>
-                        <td>
-                            End Date:
-                        </td>
-                        <td>
-                            <cc1:DatePicker ID="projectEndDate" runat="server" AutoPostBack="true" Width="100px"
-                                PaneWidth="150px">
-                                <PaneTableStyle BorderColor="#707070" BorderWidth="1px" BorderStyle="Solid" />
-                                <PaneHeaderStyle BackColor="#0099FF" />
-                                <TitleStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevMonthStyle ForeColor="White" Font-Bold="true" />
-                                <NextPrevYearStyle ForeColor="#E0E0E0" Font-Bold="true" />
-                                <DayHeaderStyle BackColor="#E8E8E8" />
-                                <TodayStyle BackColor="#FFFFCC" ForeColor="#000000" Font-Underline="false" BorderColor="#FFCC99" />
-                                <AlternateMonthStyle BackColor="#F0F0F0" ForeColor="#707070" Font-Underline="false" />
-                                <MonthStyle BackColor="" ForeColor="#000000" Font-Underline="false" />
-                            </cc1:DatePicker>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Logo URL:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProject_LogoURL" runat="server"></asp:TextBox>
-                        </td>
-                        <td>
-                            Small Logo URL:
-                        </td>
-                        <td>
-                            <asp:TextBox ID="txtProject_SmallLogoURL" runat="server"></asp:TextBox>
-                        </td>
-                    </tr>
+                <table border="1px">                    
                     <tr>
                         <td>
                             Project ID:
@@ -282,8 +101,6 @@
                         </td>
                     </tr>
                 </table>
-                <div class="inlinemenu"><asp:LinkButton ID="btn_SavProject" runat="server" OnClick="btn_SavProject_Click" CssClass="squarebutton"><span>Save Metadata</span></asp:LinkButton></div>
-                <br /><br />
             </div>
             <div id="dataset">
                 <h4>

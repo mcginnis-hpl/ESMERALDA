@@ -12,6 +12,7 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+using LumenWorks.Framework.IO.Csv;
 
 namespace ESMERALDA
 {
@@ -19,29 +20,48 @@ namespace ESMERALDA
     {
         protected void btnCreateDataset_Click(object sender, EventArgs e)
         {
+            
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             Guid myId = (Guid)base.GetSessionValue("SessionID");
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
             this.SaveMetadata(conn, working);
-            DataTable data = (DataTable)base.GetSessionValue("TemporaryData");
-            DataTable newtable = working.BuildDataTable(data, -1);
-            SqlConnection working_connection = base.ConnectToDatabase(working.ParentProject.database_name);
-            if (string.IsNullOrEmpty(working.SQLName))
+            if (working.ID == Guid.Empty || working.IsDirty)
             {
-                working.SQLName = Utils.CreateUniqueTableName(working.GetMetadataValue("title"), working_connection);
+                DataTable data = (DataTable)base.GetSessionValue("TemporaryData");
+                int chunk_offset = 0;
+                int chunk_size = 1000;
+                SqlConnection working_connection = base.ConnectToDatabase(working.ParentContainer.database_name);
+                bool created = false;
+                if (string.IsNullOrEmpty(working.SQLName))
+                {
+                    working.SQLName = Utils.CreateUniqueTableName(working.GetMetadataValue("title"), working_connection);
+                }
+                while (chunk_offset < data.Rows.Count)
+                {
+                    DataTable newtable = working.BuildDataTable(data, chunk_offset, chunk_size);
+                    if (!created)
+                    {
+                        SqlTransaction tran = working_connection.BeginTransaction();
+                        SqlTableCreator table_creator = new SqlTableCreator(working_connection, tran);
+                        table_creator.DestinationTableName = working.SQLName;
+
+                        table_creator.Create(SqlTableCreator.GetSchemaTable(newtable));
+                        created = true;
+                        tran.Commit();
+                    }
+                    SqlTableCreator creator = new SqlTableCreator(working_connection);
+                    creator.DestinationTableName = working.SQLName;
+                    creator.WriteData(newtable);
+                    chunk_offset += chunk_size;
+                }                
+                working_connection.Close();
             }
-            SqlTransaction tran = working_connection.BeginTransaction();
-            SqlTableCreator creator = new SqlTableCreator(working_connection, tran);
-            creator.DestinationTableName = working.SQLName;
-            creator.Create(SqlTableCreator.GetSchemaTable(newtable));
-            tran.Commit();
-            creator.WriteData(newtable);
-            working_connection.Close();
             if (working.Owner == null)
             {
                 working.Owner = base.CurrentUser;
             }
             working.Save(conn);
+            working.UpdateBounds(conn);
             this.PopulateFields(conn, working);
             conn.Close();
         }
@@ -56,7 +76,7 @@ namespace ESMERALDA
             conn.Close();
         }
 
-        protected void btnRefreshField_Click(object sender, EventArgs e)
+        protected void Refresh()
         {
             Debug.WriteLine("Posting back.");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
@@ -78,8 +98,8 @@ namespace ESMERALDA
             this.SaveMetadata(conn, working);
             string data_config = this.tableSpecification.Value;
             char[] row_delim = new char[] { ';' };
-            char[] col_delim = new char[] { '|' };
-            working.Header.Clear();
+            char[] col_delim = new char[] { '|' };            
+            List<Field> new_fields = new List<Field>();
 
             string[] config_rows = data_config.Split(row_delim);
             for (i = 0; i < config_rows.Length; i++)
@@ -110,15 +130,23 @@ namespace ESMERALDA
                     {
                         f.SubfieldName = config_cols[5];
                     }
+                    if (config_cols[6] == "1")
+                    {
+                        f.IsTiered = true;
+                    }
+                    else
+                    {
+                        f.IsTiered = false;
+                    }
                     f.Parent = working;
-                    working.Header.Add(f);
+                    new_fields.Add(f);                    
                 }
             }
-            foreach (Field f in working.Header)
+            foreach (Field f in new_fields)
             {
                 if (!string.IsNullOrEmpty(f.SubfieldName))
                 {
-                    foreach (Field f2 in working.Header)
+                    foreach (Field f2 in new_fields)
                     {
                         if (f2.SourceColumnName == f.SubfieldName)
                         {
@@ -128,6 +156,58 @@ namespace ESMERALDA
                         }
                     }
                 }
+            }
+            if (working.Header.Count == 0 || working.ID == Guid.Empty || working.IsDirty)
+            {
+                working.Header.Clear();
+                working.Header.AddRange(new_fields);
+            }
+            else
+            {
+                List<Field> found_fields = new List<Field>();
+                i = 0;
+                bool is_dirty = false;
+                while(i < new_fields.Count)
+                {
+                    Field f = new_fields[i];
+                    bool found = false;
+                    foreach (Field qf in working.Header)
+                    {
+                        if (qf.SourceColumnName == f.SourceColumnName)
+                        {
+                            found = true;
+                            if (qf.DBType != f.DBType || (qf.Subfield == null && f.Subfield != null) || (qf.Subfield != null && f.Subfield == null) || (f.Subfield != null && qf.Subfield != null && qf.Subfield.ID != f.Subfield.ID))
+                            {
+                                is_dirty = true;
+                            }
+                            else
+                            {
+                                f.SQLColumnName = qf.SQLColumnName;
+                            }
+                            found_fields.Add(f);
+                            new_fields.RemoveAt(i);
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        i += 1;
+                    }
+                }
+                if (new_fields.Count > 0)
+                {
+                    is_dirty = true;
+                    found_fields.AddRange(new_fields);
+                }
+                if (is_dirty && !working.IsDirty)
+                {
+                    working.IsDirty = true;
+                    Guid myId = (Guid)base.GetSessionValue("SessionID");
+                    DataTable dt = working.MoveExistingDataToTemp(conn, myId, true);
+                    base.SetSessionValue("TemporaryData", dt);
+                }
+                working.Header.Clear();
+                working.Header.AddRange(found_fields);
             }
             string metadata_string = this.fieldMetadata.Value;
             char[] row_delim2 = new char[] { '~' };
@@ -257,15 +337,28 @@ namespace ESMERALDA
                 dl.Attributes.Add("onchange", "updateHeaderField(5, " + i.ToString() + ", '" + dl.ID + "')");
                 tc.Controls.Add(dl);
                 tr.Cells.Add(tc);
+
+
                 tc = new TableCell();
                 CheckBox cb = new CheckBox
                 {
                     Checked = true,
                     ID = "header_include" + i.ToString()
                 };
-                cb.Attributes.Add("onchange", "updateHeaderField(4, " + i.ToString() + ", '" + cb.ID + "')");
+                cb.Attributes.Add("onclick", "updateHeaderField(4, " + i.ToString() + ", '" + cb.ID + "')");
                 tc.Controls.Add(cb);
                 tr.Cells.Add(tc);
+
+                tc = new TableCell();
+                cb = new CheckBox
+                {
+                    Checked = working.Header[i].IsTiered,
+                    ID = "header_tiered" + i.ToString()
+                };
+                cb.Attributes.Add("onchange", "updateHeaderField(6, " + i.ToString() + ", '" + cb.ID + "')");
+                tc.Controls.Add(cb);
+                tr.Cells.Add(tc);
+
                 tc = new TableCell
                 {
                     Text = "<a id='metadata_" + i.ToString() + "' href='javascript:editAddMetadata(\"metadata_" + i.ToString() + "\", \"" + ((Field)working.Header[i]).SourceColumnName + "\")'>Edit Metadata</a>"
@@ -290,6 +383,15 @@ namespace ESMERALDA
                 {
                     specstring = specstring + "|" + ((Field)working.Header[i]).Subfield.SourceColumnName;
                 }
+                if (working.Header[i].IsTiered)
+                {
+                    specstring += "|1";
+                }
+                else
+                {
+                    specstring += "|0";
+                }
+
                 if (string.IsNullOrEmpty(specTable))
                 {
                     specTable = specstring;
@@ -321,7 +423,7 @@ namespace ESMERALDA
             DataTable data = (DataTable)base.GetSessionValue("TemporaryData");
             if (data != null)
             {
-                DataTable parsed_data = working.BuildDataTable(data, 0x3e8);
+                DataTable parsed_data = working.BuildDataTable(data, -1, 0x3e8);
                 if (parsed_data.Rows.Count != 0)
                 {
                     int i;
@@ -332,6 +434,7 @@ namespace ESMERALDA
                         {
                             Text = parsed_data.Columns[i].ColumnName
                         };
+                        thr.Cells.Add(thc);
                     }
                     this.previewTable.Rows.Add(thr);
                     List<string[]> newrows = new List<string[]>();
@@ -339,13 +442,9 @@ namespace ESMERALDA
                     TableCell td = null;
                     for (i = 0; i < parsed_data.Rows.Count; i++)
                     {
-                        if (i == 0x3e8)
+                        if (i == 200)
                         {
                             break;
-                        }
-                        if ((i % 0x3e8) == 0)
-                        {
-                            Debug.WriteLine("Previewing: " + i.ToString());
                         }
                         tr = new TableRow();
                         for (int j = 0; j < parsed_data.Columns.Count; j++)
@@ -370,6 +469,20 @@ namespace ESMERALDA
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!IsAuthenticated)
+            {
+                string url = "Default.aspx";
+                Response.Redirect(url, false);
+                return;
+            }
+            if (UserIsAdministrator)
+            {
+                pasteDataSpecification.Visible = true;
+            }
+            else
+            {
+                pasteDataSpecification.Visible = false;
+            }
             int i;
             SqlConnection conn;
             this.saveControl.Style["display"] = "none";
@@ -383,6 +496,7 @@ namespace ESMERALDA
                 this.SetDivVisibility(null);
                 base.SetSessionValue("UploadedFiles", new List<string>());
                 base.RemoveSessionValue("WorkingDataSet");
+                base.RemoveSessionValue("TemporaryData");
                 Guid setID = Guid.Empty;
                 for (i = 0; i < base.Request.Params.Count; i++)
                 {
@@ -400,7 +514,7 @@ namespace ESMERALDA
                     if (newdataset != null)
                     {
                         Guid myId = (Guid)base.GetSessionValue("SessionID");
-                        DataTable dt = newdataset.MoveExistingDataToTemp(conn, myId);
+                        DataTable dt = newdataset.MoveExistingDataToTemp(conn, myId, false);
                         base.SetSessionValue("TemporaryData", dt);
                         this.PopulateFields(conn, newdataset);
                         conn.Close();
@@ -413,6 +527,9 @@ namespace ESMERALDA
             {
                 Debug.WriteLine("Posting back.");
                 conn = null;
+                Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+                if (working != null)
+                    PopulateAttachments(working);
                 if (!string.IsNullOrEmpty(this.newMetrics.Value))
                 {
                     conn = base.ConnectToConfigString("RepositoryConnection");
@@ -420,8 +537,7 @@ namespace ESMERALDA
                 }
                 if (this.hiddenCommands.Value == "REFRESH")
                 {
-                    this.hiddenCommands.Value = string.Empty;
-                    Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+                    this.hiddenCommands.Value = string.Empty;                    
                     if (working != null)
                     {
                         if (conn == null)
@@ -439,7 +555,8 @@ namespace ESMERALDA
                             comboSpreadsheetSheets.Items.Add(new ListItem(s, s));
                         }
                         RemoveSessionValue("SheetsToPick");
-                        AddStartupCall("showSheetSelector();", "showPicker");
+                        spreadsheetSheetPicker.Style["display"] = "inline";
+                        // AddStartupCall("showSheetSelector();", "showPicker");
                     }
                 }
                 if (conn != null)
@@ -454,6 +571,7 @@ namespace ESMERALDA
         {
             this.PopulateMetadataField(conn, working);
             this.BuildDisplayDataTable(conn, working);
+            this.PopulateAttachments(working);
             if (working.IsDefined)
             {
                 this.BuildPreview(conn, working);
@@ -475,12 +593,12 @@ namespace ESMERALDA
         {
             int i;
             DateTime starttime = DateTime.Now;
-            Guid projectid = Guid.Empty;
+            Guid containerid = Guid.Empty;
             for (i = 0; i < base.Request.Params.Count; i++)
             {
-                if (!string.IsNullOrEmpty(base.Request.Params[i]) && (base.Request.Params.GetKey(i).ToUpper() == "PROJECTID"))
+                if (!string.IsNullOrEmpty(base.Request.Params[i]) && (base.Request.Params.GetKey(i).ToUpper() == "CONTAINERID"))
                 {
-                    projectid = new Guid(base.Request.Params[i]);
+                    containerid = new Guid(base.Request.Params[i]);
                 }
             }
             this.txtMetadata_Acquisition.Text = working.GetMetadataValue("acqdesc");
@@ -489,7 +607,7 @@ namespace ESMERALDA
             this.txtMetadata_Processing.Text = working.GetMetadataValue("procdesc");
             this.txtMetadata_ShortDescription.Text = working.GetMetadataValue("purpose");
             this.txtMetadata_URL.Text = working.GetMetadataValue("url");
-            string directlink = "<a href=\"http://hpldata.hpl.umces.edu/Default.aspx?DATASETID=" + working.ID.ToString() + "\">" + working.ID.ToString() + "</a>";
+            string directlink = "<a href=\"http://hpldata.hpl.umces.edu/Default.aspx?ENTITYID=" + working.ID.ToString() + "\">" + working.ID.ToString() + "</a>";
             this.lblMetadata_DatasetID.Text = directlink;
             string keywordstring = string.Empty;
             List<string> keywords = working.GetMetadataValueArray("keyword");
@@ -502,43 +620,9 @@ namespace ESMERALDA
                 }
             }
             this.txtKeywords.Text = keywordstring;
-            if (working.IsPublic)
-            {
-                comboMetadata_IsPublic.SelectedIndex = 0;
-            }
-            else
-            {
-                comboMetadata_IsPublic.SelectedIndex = 1;
-            }
-            this.comboProject.Items.Clear();
-            ListItem li = new ListItem(string.Empty, string.Empty);
-            this.comboProject.Items.Add(li);
-            string cmd = "SELECT project_name, project_id FROM v_ESMERALDA_project_metadata ORDER BY project_name";
-            SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
-            while (reader.Read())
-            {
-                if (!reader.IsDBNull(reader.GetOrdinal("project_name")))
-                {
-                    this.comboProject.Items.Add(new ListItem(reader["project_name"].ToString(), reader["project_id"].ToString()));
-                }
-            }
-            if ((projectid == Guid.Empty) && (working.ParentProject != null))
-            {
-                projectid = working.ParentProject.ID;
-            }
-            if (projectid != Guid.Empty)
-            {
-                for (i = 0; i < this.comboProject.Items.Count; i++)
-                {
-                    if (this.comboProject.Items[i].Value == projectid.ToString())
-                    {
-                        this.comboProject.SelectedIndex = i;
-                        break;
-                    }
-                }
-            }
-            reader.Close();
+            chkIsPublic.Checked = working.IsPublic;            
             chooser.PopulateChooser(conn, working);
+            metadata_picker.PopulateMetadata(working);
         }
 
         protected void PopulateMetrics(List<Metric> metrics)
@@ -592,39 +676,51 @@ namespace ESMERALDA
             }
         }
 
+        protected void ShowError(string msg)
+        {
+            lblError.Text = msg;
+            
+        }
+
         protected void ProcessUpload(object sender, AsyncFileUploadEventArgs e)
         {
             DateTime starttime = DateTime.Now;
             DateTime functionstarttime = DateTime.Now;
             Debug.WriteLine("Loading file.");
-            List<string> rows = new List<string>();
-            bool doFinish = true;
+            int header_row = -1;
+            if (!string.IsNullOrEmpty(txtHeaderRow_Upload.Text))
+            {
+                try
+                {
+                    header_row = int.Parse(txtHeaderRow_Upload.Text);
+                }
+                catch (FormatException)
+                {
+                }
+            }
             if (this.uploadFiles2.PostedFile != null)
             {
-                Exception Ex;
                 HttpPostedFile userPostedFile = this.uploadFiles2.PostedFile;
                 string filename = userPostedFile.FileName;
                 string mimetype = userPostedFile.ContentType;
-                if (((filename.EndsWith(".csv") || (mimetype == "text/csv")) || ((mimetype == "text/comma-separated-values") || filename.EndsWith(".dat"))) || (mimetype == "ext/tab-separated-values"))
+                if ((filename.EndsWith(".csv") || (mimetype == "text/csv")) || ((mimetype == "text/comma-separated-values") || filename.EndsWith(".dat")) || (mimetype == "ext/tab-separated-values") || filename.EndsWith(".txt"))
                 {
                     try
                     {
                         if (userPostedFile.ContentLength > 0)
                         {
+                            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+                            DataTable saved_table = (DataTable)base.GetSessionValue("TemporaryData");
                             string curr = string.Empty;
-                            StreamReader sr = new StreamReader(userPostedFile.InputStream);
-                            while (!sr.EndOfStream)
-                            {
-                                curr = sr.ReadLine();
-                                rows.Add(curr);
-                            }
+                            StreamReader sr = new StreamReader(userPostedFile.InputStream, System.Text.Encoding.Default, true);
+                            FinishProcessingUpload(sr, ref working, ref saved_table);
                             sr.Close();
+                            base.SetSessionValue("TemporaryData", saved_table);
                         }
                     }
                     catch (Exception exception1)
                     {
-                        Ex = exception1;
-                        this.metadata.InnerHtml = this.metadata.InnerHtml + "Error: <br>" + Ex.Message;
+                        ShowError(exception1.Message + " " + exception1.StackTrace);
                     }
                 }
                 else if (filename.EndsWith(".xls") || (mimetype == "application/vnd.ms-excel") || mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || filename.EndsWith(".xlsx"))
@@ -634,7 +730,8 @@ namespace ESMERALDA
                         if (userPostedFile.ContentLength > 0)
                         {
                             string extension = filename.Substring(filename.LastIndexOf('.'));
-                            string tmpfilename = @"c:\tempfiles\" + Guid.NewGuid().ToString() + extension;
+                            string save_dir = GetApplicationSetting("incomingpath");
+                            string tmpfilename = save_dir + Guid.NewGuid().ToString() + extension;
                             SetSessionValue("LastTempFile", tmpfilename);
                             FileStream fs = File.OpenWrite(tmpfilename);
                             byte[] buffer = new byte[userPostedFile.ContentLength];
@@ -655,13 +752,13 @@ namespace ESMERALDA
                             List<string> sheets = new List<string>();
                             foreach (DataRow r in connection.GetSchema("Tables").Rows)
                             {
-                                if(!string.IsNullOrEmpty((string)r["TABLE_NAME"]))
+                                if (!string.IsNullOrEmpty((string)r["TABLE_NAME"]))
                                     sheets.Add((string)r["TABLE_NAME"]);
                             }
                             if (sheets.Count > 1)
                             {
                                 SetSessionValue("SheetsToPick", sheets);
-                                doFinish = false;
+                                SetSessionValue("postedfile", userPostedFile.FileName);
                                 connection.Close();
                             }
                             else
@@ -673,26 +770,23 @@ namespace ESMERALDA
                                 connection.Close();
                                 DataTable data = ds.Tables[0];
                                 string data_string = Utils.ToCSV(data);
-                                char[] delim = new char[] { '\n' };
-                                string[] tokens = data_string.Split(delim);
-                                rows.AddRange(tokens);
+                                StringReader sr = new StringReader(data_string);
+                                Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+                                DataTable saved_table = (DataTable)base.GetSessionValue("TemporaryData");
+                                FinishProcessingUpload(sr, ref working, ref saved_table);
+                                sr.Close();
                             }
                         }
                     }
-                    catch (Exception exception2)
+                    catch (Exception exception1)
                     {
-                        Ex = exception2;
-                        this.metadata.InnerHtml = this.metadata.InnerHtml + "Error: <br>" + Ex.Message;
+                        ShowError(exception1.Message + " " + exception1.StackTrace);
                     }
                 }
-            }
-            if (doFinish)
-            {
-                FinishProcessingUpload(rows);
-            }
+            }            
         }
 
-        protected void FinishProcessingUpload(List<string> rows)
+        protected void FinishProcessingUpload(TextReader in_reader, ref Dataset working, ref DataTable saved_table)
         {
             int i;
             string[] header_fields;
@@ -700,239 +794,156 @@ namespace ESMERALDA
             List<string> missing_fields;
             List<string> extra_fields;
             string msg;
-            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+            
             DateTime functionstarttime = DateTime.Now;
             DateTime starttime = DateTime.Now;
-            if (rows.Count == 0)
-            {
-                return;
-            }
             TimeSpan debugtime = (TimeSpan)(DateTime.Now - starttime);
             starttime = DateTime.Now;
             Debug.WriteLine("Time to upload: " + ((int)debugtime.TotalMilliseconds).ToString() + "ms");
-            int comma_num_fields = 0;
 
-            char delim_char = ',';
-            char[] delim_char_array = new char[] { ',' };
-            int count = 0;
-            foreach (string s in rows)
-            {
-                count = 1;
-                foreach (char c in s)
-                {
-                    if (c == delim_char)
-                    {
-                        count++;
-                    }
-                }
-                if (count > comma_num_fields)
-                {
-                    comma_num_fields = count;
-                }
-            }
-            delim_char = '\t';
-            delim_char_array[0] = '\t';
-            int tab_num_fields = 0;
-            foreach (string s in rows)
-            {
-                count = 1;
-                foreach (char c in s)
-                {
-                    if (c == delim_char)
-                    {
-                        count++;
-                    }
-                }
-                if (count > tab_num_fields)
-                {
-                    tab_num_fields = count;
-                }
-            }
-
-            delim_char = ' ';
-            delim_char_array[0] = ' ';
-            int space_num_fields = 0;
-            foreach (string s in rows)
-            {
-                count = 1;
-                foreach (char c in s)
-                {
-                    if (c == delim_char)
-                    {
-                        count++;
-                    }
-                }
-                if (count > space_num_fields)
-                {
-                    space_num_fields = count;
-                }
-            }
-
-            int num_fields = 0;
-            if (tab_num_fields == 1 && comma_num_fields == 1 && space_num_fields > 1)
-            {
-                num_fields = space_num_fields;
-                delim_char = ' ';
-                delim_char_array[0] = ' ';
-            }
-            else if (tab_num_fields > comma_num_fields)
-            {
-                num_fields = tab_num_fields;
-                delim_char = '\t';
-                delim_char_array[0] = '\t';
-            }
-            else
-            {
-                num_fields = comma_num_fields;
-                delim_char = ',';
-                delim_char_array[0] = ',';
-            }
-            Guid projectid = Guid.Empty;
+            CsvReader csv = new CsvReader(in_reader, true, true);            
+            csv.MissingFieldAction = MissingFieldAction.ReplaceByNull;
+            Guid containerid = Guid.Empty;
             for (i = 0; i < base.Request.Params.Count; i++)
             {
-                if (!string.IsNullOrEmpty(base.Request.Params[i]) && (base.Request.Params.GetKey(i).ToUpper() == "PROJECTID"))
+                if (!string.IsNullOrEmpty(base.Request.Params[i]) && (base.Request.Params.GetKey(i).ToUpper() == "CONTAINERID"))
                 {
-                    projectid = new Guid(base.Request.Params[i]);
+                    containerid = new Guid(base.Request.Params[i]);
                 }
             }
             if (working == null)
             {
                 working = new Dataset();
             }
-            List<Field> fields = new List<Field>();
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            Dictionary<string, int> colmap = new Dictionary<string, int>();
-            bool error = false;
             missing_fields = new List<string>();
             extra_fields = new List<string>();
-
             if ((working.Header != null) && (working.Header.Count > 0))
             {
                 foreach (Field f in working.Header)
                 {
                     missing_fields.Add(f.SourceColumnName);
                 }
-                for (i = 0; i < rows.Count; i++)
+                string[] file_headers = csv.GetFieldHeaders();
+                for (i = 0; i < file_headers.Length; i++)
                 {
-                    string s = rows[i];
-                    count = 1;
-                    foreach (char c in s)
+                    if (!missing_fields.Contains(file_headers[i]))
                     {
-                        if (c == delim_char)
-                        {
-                            count++;
-                        }
+                        extra_fields.Add(file_headers[i]);
                     }
-                    if (count == num_fields)
+                    else
                     {
-                        rows.RemoveRange(0, i + 1);
-                        header_fields = s.Split(delim_char_array);
-                        for (j = 0; j < header_fields.Length; j++)
-                        {
-                            if (!string.IsNullOrEmpty(header_fields[j].Trim()))
-                            {
-                                string curr_head_col = header_fields[j].Trim();
-                                if (!colmap.ContainsKey(curr_head_col))
-                                {
-                                    colmap.Add(curr_head_col, j);
-                                    if (!missing_fields.Contains(curr_head_col))
-                                    {
-                                        extra_fields.Add(curr_head_col);
-                                    }
-                                    else
-                                    {
-                                        missing_fields.Remove(curr_head_col);
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
+                        missing_fields.Remove(file_headers[i]);
+                    }                
                 }
+            }
+            if (working.Header == null || working.Header.Count == 0)
+            {
+                working.Header = new List<QueryField>();
+                header_fields = csv.GetFieldHeaders();
+                for (j = 0; j < header_fields.Length; j++)
+                {
+                    if (!string.IsNullOrEmpty(header_fields[j].Trim()))
+                    {
+                        Field f = new Field
+                        {
+                            SourceColumnName = header_fields[j].Trim()
+                        };
+                        f.Name = Field.ExtractColumnName(f.SourceColumnName);
+                        f.FieldMetric = Field.RecommendMetric(f.SourceColumnName, base.Metrics, null);
+                        if (f.FieldMetric != null)
+                            f.DBType = f.FieldMetric.DataType;
+                        f.Parent = working;
+                        working.Header.Add(f);
+                    }
+                }                
             }
             else
             {
-                for (i = 0; i < rows.Count; i++)
+                if (missing_fields.Count > 0)
                 {
-                    string s = rows[i];
-                    count = 1;
-                    foreach (char c in s)
+                    if (saved_table == null || saved_table.Rows.Count == 0)
                     {
-                        if (c == delim_char)
+                        foreach (string t in missing_fields)
                         {
-                            count++;
-                        }
-                    }
-                    if (count == num_fields)
-                    {
-                        rows.RemoveRange(0, i + 1);
-                        header_fields = null;
-                        header_fields = s.Split(delim_char_array);
-                        for (j = 0; j < header_fields.Length; j++)
-                        {
-                            if (!string.IsNullOrEmpty(header_fields[j].Trim()))
+                            int k = 0;
+                            while (k < working.Header.Count)
                             {
-                                Field f = new Field
+                                if(((Field)working.Header[k]).SourceColumnName == t)
                                 {
-                                    SourceColumnName = header_fields[j].Trim()
-                                };
-                                if (!colmap.ContainsKey(f.SourceColumnName))
-                                {
-                                    colmap.Add(f.SourceColumnName, j);
-                                    f.Name = Field.ExtractColumnName(f.SourceColumnName);
-                                    f.FieldMetric = Field.RecommendMetric(f.SourceColumnName, base.Metrics);
-                                    fields.Add(f);
+                                    working.Header.RemoveAt(k);
+                                    break;
                                 }
+                                k += 1;
                             }
                         }
-                        break;
+                    }
+                    else
+                    {
+                        msg = "The new data is missing the following columns; these columns will be null in the new rows: " + missing_fields[0];
+                        for (i = 1; i < missing_fields.Count; i++)
+                        {
+                            msg = msg + ", " + missing_fields[i];
+                        }
+                        base.ShowAlert(msg);
                     }
                 }
-                working.Header = new List<QueryField>();
-                foreach (Field f2 in fields)
+                if (extra_fields.Count > 0)
                 {
-                    f2.Parent = working;
-                    working.Header.Add(f2);
+                    msg = "The new data has the following extra columns; these fields will be null in any existing rows: " + extra_fields[0];
+                    for (i = 1; i < extra_fields.Count; i++)
+                    {
+                        msg = msg + ", " + extra_fields[i];
+                    }
+                    foreach (string s in extra_fields)
+                    {
+                        Field f = new Field
+                        {
+                            SourceColumnName = s.Trim()
+                        };
+                        f.Name = Field.ExtractColumnName(f.SourceColumnName);
+                        f.FieldMetric = Field.RecommendMetric(f.SourceColumnName, base.Metrics, null);
+                        if (f.FieldMetric != null)
+                            f.DBType = f.FieldMetric.DataType;
+                        f.Parent = working;
+                        working.Header.Add(f);
+                    }
+                    base.ShowAlert(msg);
                 }
             }
-            if (missing_fields.Count > 0)
+            if (containerid != Guid.Empty)
             {
-                msg = "The new data is missing the following columns; it can not be added to this dataset: " + missing_fields[0];
-                for (i = 1; i < missing_fields.Count; i++)
-                {
-                    msg = msg + ", " + missing_fields[i];
-                }
-                base.ShowAlert(msg);
-                error = true;
+                working.ParentEntity = new Container();
+                working.ParentEntity.Load(conn, containerid);
             }
-            else if (extra_fields.Count > 0)
-            {
-                msg = "The new data has the following extra columns; these fields will not be added to the dataset: " + extra_fields[0];
-                for (i = 1; i < extra_fields.Count; i++)
-                {
-                    msg = msg + ", " + extra_fields[i];
-                }
-                base.ShowAlert(msg);
-            }
-            if (projectid != Guid.Empty)
-            {
-                working.ParentProject = new Project();
-                working.ParentProject.Load(conn, projectid);
-            }
+            working.IsDirty = true;
             base.SetSessionValue("WorkingDataSet", working);
-            Guid myId = (Guid)base.GetSessionValue("SessionID");
-            if (!error)
+
+            saved_table = working.SaveTemporaryData(csv, saved_table);
+            foreach (Field f in working.Header)
             {
-                DataTable saved_table = (DataTable)base.GetSessionValue("TemporaryData");
-                saved_table = working.SaveTemporaryData(conn, rows, colmap, myId, saved_table, delim_char_array);
-                base.SetSessionValue("TemporaryData", saved_table);
-                debugtime = (TimeSpan)(DateTime.Now - starttime);
-                starttime = DateTime.Now;
-                Debug.WriteLine("Time to save temporary data: " + ((int)debugtime.TotalMilliseconds).ToString() + "ms");
-                List<string> uploads = (List<string>)base.GetSessionValue("UploadedFiles");
-                uploads.Add(this.uploadFiles2.PostedFile.FileName);
-                base.SetSessionValue("UploadedFiles", uploads);
+                if (f.FieldMetric == null)
+                {
+                    f.FieldMetric = Field.RecommendMetric(f.SourceColumnName, base.Metrics, saved_table);
+                    if(f.FieldMetric != null)
+                        f.DBType = f.FieldMetric.DataType;
+                }
             }
+            debugtime = (TimeSpan)(DateTime.Now - starttime);
+            starttime = DateTime.Now;
+            Debug.WriteLine("Time to save temporary data: " + ((int)debugtime.TotalMilliseconds).ToString() + "ms");
+            List<string> uploads = (List<string>)base.GetSessionValue("UploadedFiles");
+            if (this.uploadFiles2.PostedFile != null)
+            {
+                uploads.Add(this.uploadFiles2.PostedFile.FileName);
+            }
+            else if (GetSessionValue("postedfile") != null)
+            {
+                uploads.Add((string)GetSessionValue("postedfile"));
+                RemoveSessionValue("postedfile");
+            }
+            base.SetSessionValue("UploadedFiles", uploads);
+
             Debug.WriteLine("Loading file complete.");
             debugtime = (TimeSpan)(DateTime.Now - functionstarttime);
             Debug.WriteLine("Total upload time: " + ((int)debugtime.TotalMilliseconds).ToString() + "ms");
@@ -945,7 +956,7 @@ namespace ESMERALDA
             working.SetMetadataValue("title", this.txtMetadata_Name.Text);
             working.SetMetadataValue("procdesc", this.txtMetadata_Processing.Text);
             working.SetMetadataValue("purpose", this.txtMetadata_ShortDescription.Text);
-            working.IsPublic = bool.Parse(comboMetadata_IsPublic.SelectedValue);
+            working.IsPublic = chkIsPublic.Checked;
             working.SetMetadataValue("url", this.txtMetadata_URL.Text);
             char[] delim = new char[] { ',' };
             working.ClearMetadataValue("keyword");
@@ -967,6 +978,7 @@ namespace ESMERALDA
             List<Guid> personids = new List<Guid>();
             List<string> rels = new List<string>();
             chooser.GetSelectedItems(personids, rels);
+            // metadata_picker.GetSelectedItems(working);
             working.Relationships.Clear();
             for(int i=0; i < personids.Count; i++)
             {
@@ -1001,20 +1013,23 @@ namespace ESMERALDA
             {
                 this.metadata.Style["visibility"] = "hidden";
                 this.datafields.Style["visibility"] = "hidden";
-                this.preview.Style["visibility"] = "hidden";
-                this.uploadPrompt.InnerHtml = "<h4>Upload a file</h4><br/>Select a file to upload data from:";
+                this.preview.Style["visibility"] = "hidden";                
             }
             else
             {
                 this.metadata.Style["visibility"] = "";
                 this.datafields.Style["visibility"] = "";
                 this.preview.Style["visibility"] = "";
-                this.uploadPrompt.InnerHtml = "<h4>Upload additional data</h4><br/>Select a file to upload data from:";
             }
         }
 
         protected void btnSelectSheet_Click(object sender, EventArgs e)
-        {           
+        {
+            int header_row = -1;
+            if (!string.IsNullOrEmpty(txtHeaderRow.Text))
+            {
+                header_row = int.Parse(txtHeaderRow.Text);
+            }
             RemoveStartupCall("showPicker");
             string myTableName = (string)comboSpreadsheetSheets.SelectedValue;
             string tmpfilename = (string)GetSessionValue("LastTempFile");
@@ -1026,20 +1041,256 @@ namespace ESMERALDA
             }
             else if (extension == ".xlsx")
             {
-                connection = new OleDbConnection(@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + tmpfilename + ";Extended Properties='Excel 12.0 xml;HDR=YES;'");
+                connection = new OleDbConnection(@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + tmpfilename + ";Extended Properties='Excel 12.0 xml;HDR=NO;IMEX=1;'");
             }
             connection.Open();
             List<string> rows = new List<string>();
             OleDbDataAdapter adapter = new OleDbDataAdapter("SELECT * FROM [" + myTableName + "]", connection);
             DataSet ds = new DataSet();
-            adapter.Fill(ds, "anyNameHere");
-            connection.Close();
+            adapter.Fill(ds, "anyNameHere");            
             DataTable data = ds.Tables[0];
             string data_string = Utils.ToCSV(data);
-            char[] delim = new char[] { '\n' };
-            string[] tokens = data_string.Split(delim);
-            rows.AddRange(tokens);
-            FinishProcessingUpload(rows);
+            spreadsheetSheetPicker.Style["display"] = "none";
+            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+            DataTable saved_table = (DataTable)base.GetSessionValue("TemporaryData");
+            StringReader sr = new StringReader(data_string);
+            FinishProcessingUpload(sr, ref working, ref saved_table);
+            sr.Close();
+            connection.Close();
+            SetSessionValue("TemporaryData", saved_table);
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            this.PopulateFields(conn, working);
+            conn.Close();            
+        }
+
+        // Process the "upload" button, which adds an attachment to the request.
+        protected void doUpload(object sender, EventArgs e)
+        {
+            SqlConnection conn = ConnectToConfigString("RepositoryConnection");
+            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+            try
+            {
+                // Create a new attached file.
+                AttachedFile af = new AttachedFile();
+                af.ID = Guid.NewGuid();
+                string filepath = GetApplicationSetting("filesavepath") + af.ID.ToString();
+                af.Filename = uploadAttachment.FileName;
+                af.Path = filepath;
+                // Save the attachment.
+                uploadAttachment.SaveAs(filepath);
+                // working.attachments.Clear();
+                working.attachments.Add(af);
+                // PopulateData(conn, working, false);
+                SetSessionValue("WorkingDataSet", working);
+                this.PopulateFields(conn, working);
+                // PopulateData(conn, working, true);
+            }
+            catch (Exception ex)
+            {
+                ShowAlert("Could not upload file: " + ex.Message + "\n" + ex.StackTrace);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        /// <summary>
+        /// Populate the list of attachments for this current request
+        /// </summary>
+        /// <param name="working">The current request.</param>
+        protected void PopulateAttachments(Dataset working)
+        {
+            if (working.attachments.Count > 0)
+            {
+                string linkurl = "<table border='0'>";
+                foreach (AttachedFile f in working.attachments)
+                {
+                    string download_link = "<a href='DownloadAttachedFile.aspx?ATTACHMENTID=" + f.ID.ToString() + "' target='_blank'>Download " + f.Filename + "</a>";
+                    string remove_link = "<a href='javascript:removeAttachment(\"" + f.ID.ToString() + "\")'>Remove " + f.Filename + "</a>";
+                    bool can_remove = false;
+                    if (IsAuthenticated && CurrentUser != null)
+                    {
+                        if (CurrentUser.IsAdministrator)
+                        {
+                            can_remove = true;
+                        }
+                        else
+                        {
+                            foreach (PersonRelationship p in working.Relationships)
+                            {
+                                if (p.person.ID == CurrentUser.ID)
+                                {
+                                    can_remove = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!can_remove)
+                    {
+                        remove_link = string.Empty;
+                    }
+                    // It's just a table; add a download link in a table cell for each row.
+                    linkurl += "<tr><td>" + download_link + "</td><td>" + remove_link + "</td></tr>";
+                }
+                linkurl += "</table>";
+                filedownloadlink.InnerHtml = linkurl;
+            }
+            else
+            {
+                filedownloadlink.InnerHtml = string.Empty;
+            }
+        }
+
+        // Remove an attachment.
+        protected void RemoveAttachment(Guid attachmentid)
+        {
+            SqlConnection conn = ConnectToConfigString("RepositoryConnection");
+            try
+            {
+                Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+                for (int i = 0; i < working.attachments.Count; i++)
+                {
+                    AttachedFile af = working.attachments[i];
+                    if (af.ID == attachmentid)
+                    {
+                        af.DeleteLocalCopy();
+                        working.attachments.RemoveAt(i);
+                        break;
+                    }
+                }
+                PopulateFields(conn, working);
+                if (working.ID != Guid.Empty)
+                {
+                    working.Save(conn);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowAlert("An error occurred: " + ex.Message + " " + ex.StackTrace);
+            }
+            finally
+            {
+                if (conn != null)
+                    conn.Close();
+            }
+        }
+
+        protected void txtpasteDataSpecification_TextChanged(object sender, EventArgs e)
+        {
+            string spec = txtpasteDataSpecification.Text;
+            MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(spec));
+            StreamReader sr = new StreamReader(ms);
+            CsvReader csv = new CsvReader(sr, true, true);
+            csv.MissingFieldAction = MissingFieldAction.ReplaceByNull;
+            int fieldCount = csv.FieldCount;
+            string[] headers = csv.GetFieldHeaders();
+            Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
+            while (csv.ReadNextRecord())
+            {
+                Field f = null;
+                for (int i = 0; i < fieldCount; i++)
+                {
+                    string val = csv[i];
+                    if (headers[i].ToUpper() == "FIELD NAME")
+                    {
+                        foreach (Field f2 in working.Header)
+                        {
+                            if (f2.SourceColumnName == val)
+                            {
+                                f = f2;
+                                break;
+                            }
+                        }
+                    }
+                    if (f != null)
+                        break;
+                }
+                if (f != null)
+                {
+                    for (int i = 0; i < fieldCount; i++)
+                    {
+                        string val = csv[i];
+                        if (string.IsNullOrEmpty(val))
+                            continue;
+                        if (headers[i].ToUpper() == "LABEL")
+                        {
+                            f.Name = val;
+                        }
+                        else if (headers[i].ToUpper() == "TYPE")
+                        {
+                            f.DBType = (Field.FieldType)int.Parse(val);
+                        }
+                        else if (headers[i].ToUpper() == "UNITS")
+                        {
+                            foreach (Metric m in Metrics)
+                            {
+                                if (m.Name == val && m.DataType == f.DBType)
+                                {
+                                    f.FieldMetric = m;
+                                    break;
+                                }
+                            }
+                        }
+                        else if (headers[i].ToUpper() == "TIERED")
+                        {
+                            if (val.ToUpper() == "TRUE")
+                            {
+                                f.IsTiered = true;
+                            }
+                            else
+                            {
+                                f.IsTiered = false;
+                            }
+                        }
+                        else if (headers[i].ToUpper() == "FIELD INCLUDED")
+                        {
+                            if (val.ToUpper() == "FALSE")
+                            {
+                                for (int j = 0; j < working.Header.Count; j++)
+                                {
+                                    if (working.Header[j] == f)
+                                    {
+                                        working.Header.RemoveAt(j);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else if (headers[i].ToUpper() == "INSTRUMENT")
+                        {
+                            f.SetMetadataValue("instrument", val);
+                        }
+                        else if (headers[i].ToUpper() == "OBSERVATION METHODOLOGY")
+                        {
+                            f.SetMetadataValue("observation_methodology", val);
+                        }
+                        else if (headers[i].ToUpper() == "ANALYSIS METHODOLOGY")
+                        {
+                            f.SetMetadataValue("analysis_methodology", val);
+                        }
+                        else if (headers[i].ToUpper() == "PROCESSING METHODOLOGY")
+                        {
+                            f.SetMetadataValue("processing_methodology", val);
+                        }
+                        else if (headers[i].ToUpper() == "CITATIONS")
+                        {
+                            f.SetMetadataValue("citations", val);
+                        }
+                        else if (headers[i].ToUpper() == "DESCRIPTION")
+                        {
+                            f.SetMetadataValue("description", val);
+                        }
+                    }
+                }
+            }
+            sr.Close();
+            ms.Close();
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            this.PopulateFields(conn, working);
+            conn.Close();
+            SetSessionValue("WorkingDataSet", working);
         }
     }
 }

@@ -31,58 +31,31 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.DropDownList comboGraphType;
         
         /// <summary>
-        /// comboXAxis control.
+        /// listAvailableFields control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboXAxis;
+        protected global::System.Web.UI.WebControls.ListBox listAvailableFields;
         
         /// <summary>
-        /// comboYAxis control.
+        /// listSelectedFields control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboYAxis;
+        protected global::System.Web.UI.WebControls.ListBox listSelectedFields;
         
         /// <summary>
-        /// comboField1 control.
+        /// listColors control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboField1;
-        
-        /// <summary>
-        /// comboField2 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboField2;
-        
-        /// <summary>
-        /// comboField3 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboField3;
-        
-        /// <summary>
-        /// comboField4 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList comboField4;
+        protected global::System.Web.UI.WebControls.ListBox listColors;
         
         /// <summary>
         /// btnCreateGraph control.
@@ -94,39 +67,66 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.LinkButton btnCreateGraph;
         
         /// <summary>
-        /// points control.
+        /// msChart control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField points;
+        protected global::System.Web.UI.DataVisualization.Charting.Chart msChart;
         
         /// <summary>
-        /// labels control.
+        /// txtColor control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField labels;
+        protected global::System.Web.UI.WebControls.TextBox txtColor;
         
         /// <summary>
-        /// types control.
+        /// chkSeries control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField types;
+        protected global::System.Web.UI.WebControls.CheckBox chkSeries;
         
         /// <summary>
-        /// chartType control.
+        /// fieldValues control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField chartType;
+        protected global::System.Web.UI.WebControls.HiddenField fieldValues;
+        
+        /// <summary>
+        /// colorValues control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField colorValues;
+        
+        /// <summary>
+        /// seriesValues control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField seriesValues;
+        
+        /// <summary>
+        /// pageWidth control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField pageWidth;
     }
 }

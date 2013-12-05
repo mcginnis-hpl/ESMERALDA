@@ -13,9 +13,9 @@
 
     function addUser() {
         var reldiv = document.getElementById("relationshipdiv");
-        var ap = document.getElementById('<%=listAvailableUsers.ClientID %>');
+        var ap = document.getElementById('controls');
         document.getElementById('<%=txtRelationship.ClientID %>').value = "";
-        reldiv.style.display = "inherit";
+        reldiv.style.display = "";
 
         reldiv.style.top = (getOffset(ap).top) + "px";
         document.getElementById('<%=txtRelationship.ClientID %>').focus();
@@ -105,11 +105,14 @@
     }
 
 </script>
-<table border="0">
+<table border="0" id="dynamicChooser" runat="server">
     <tr><th>Available People</th><th></th><th>Selected People</th></tr>
     <tr><td id="available" runat="server"><asp:ListBox ID="listAvailableUsers" runat="server"></asp:ListBox></td><td id="controls" runat="server"><center><a class='squarebutton' href='javascript:addUser()'><span>Add User</span></a></center><br /><center><a class='squarebutton' href='javascript:removeUser()'><span>Remove User</span></a></center></td>
     <td><asp:ListBox ID="listSelectedUsers" runat="server"></asp:ListBox></td></tr>
 </table>
+<asp:Table ID="staticChooser" runat="server">
+    <asp:TableHeaderRow><asp:TableHeaderCell>Person</asp:TableHeaderCell><asp:TableHeaderCell>Relationship</asp:TableHeaderCell></asp:TableHeaderRow>
+</asp:Table>
 <div id="relationshipdiv" style="border: 1px solid #000; width:250px; position:absolute; margin:0 auto; background-color: #FFFFFF; display:none;">
     Relationship: <asp:TextBox ID="txtRelationship" runat="server" 
         Width="240px"></asp:TextBox>    

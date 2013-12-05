@@ -191,7 +191,7 @@
             switch (type.ToString())
             {
                 case "System.String":
-                    return ("VARCHAR(" + ((columnSize == -1) ? "255" : ((columnSize > 0x1f40) ? "MAX" : columnSize.ToString())) + ")");
+                    return ("NVARCHAR(" + ((columnSize == -1) ? "255" : ((columnSize > 0x1f40) ? "MAX" : columnSize.ToString())) + ")");
 
                 case "System.Decimal":
                     if (numericScale <= 0)
@@ -288,7 +288,14 @@
         {
             get
             {
-                return this._tableName;
+                if (this._tableName.IndexOf("[") < 0)
+                {
+                    return "[" + this._tableName + "]";
+                }
+                else
+                {
+                    return this._tableName;
+                }
             }
             set
             {

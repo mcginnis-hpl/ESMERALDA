@@ -35,6 +35,8 @@
             else {
                 populateDataset1(el.value);
             }
+            el = document.getElementById("removeField");
+            el.value = "ALL";
         }
 
         function populateDataset1(projid) {
@@ -88,6 +90,8 @@
             else {
                 populateDataset2(el.value);
             }
+            el = document.getElementById("removeField");
+            el.value = "ALL";
         }
 
         function populateDataset2(projid) {
@@ -143,6 +147,8 @@
                 var el2 = document.getElementById("selectedDS1");
                 el2.value = el.value;
             }
+            el = document.getElementById("removeField");
+            el.value = "ALL";
         }
 
         function populateField1(dsid) {
@@ -198,6 +204,8 @@
                 var el2 = document.getElementById("selectedDS2");
                 el2.value = el.value;
             }
+            el = document.getElementById("removeField");
+            el.value = "ALL";
         }
 
         function populateField2(dsid) {
@@ -264,6 +272,12 @@
                 el2.value = el.value;
             }
         }
+
+        function removeRow(id) {
+            var el = document.getElementById("removeField");
+            el.value = id;
+            form1.submit();
+        }
     </script>
 </head>
 <body onload='initalizeParent()'>
@@ -306,72 +320,56 @@
                             <asp:Label ID="lblViewSQLName" runat="server" Text=""></asp:Label>
                         </td>
                     </tr>
+                    <tr>
+                        <td>Join is Public:</td>
+                        <td>
+                            <asp:CheckBox ID="chkIsPublic" runat="server" /></td>
+                    </tr>
                 </table>
             </div>
             <div id="joininfo">
-                <table border="0">
-                    <tr>
-                        <td>
-                            Source 1 Project
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource1Project" runat="server" onchange="updateProject1()">
-                            </asp:DropDownList>
-                        </td>
-                        <td>
-                            Source 1 Dataset
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource1Dataset" runat="server" onchange="updateDataset1()">
-                            </asp:DropDownList>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Source 2 Project
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource2Project" runat="server" onchange="updateProject2()">
-                            </asp:DropDownList>
-                        </td>
-                        <td>
-                            Source 2 Dataset
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource2Dataset" runat="server" onchange="updateDataset2()">
-                            </asp:DropDownList>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Source 1 Linking Field
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource1LinkingField" runat="server" onchange="updateField1()">
-                            </asp:DropDownList>
-                        </td>
-                        <td>
-                            Source 2 Linking Field
-                        </td>
-                        <td>
-                            <asp:DropDownList ID="comboSource2LinkingField" runat="server" onchange="updateField2()">
-                            </asp:DropDownList>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Join Type:</td>
-                        <td>
-                            <asp:DropDownList ID="comboJoinType" runat="server">
+                <asp:Table ID="tblJoinInfo" runat="server" BorderStyle="None">
+                    <asp:TableRow ID="source1Row">
+                        <asp:TableCell>Source 1 Project</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource1Project" runat="server" onchange="updateProject1()">
+                            </asp:DropDownList></asp:TableCell>
+                        <asp:TableCell>Source 1 Dataset</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource1Dataset" runat="server" onchange="updateDataset1()">
+                            </asp:DropDownList></asp:TableCell>
+                            <asp:TableCell></asp:TableCell>
+                    </asp:TableRow>
+                    <asp:TableRow ID="source2Row">
+                        <asp:TableCell>Source 2 Project</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource2Project" runat="server" onchange="updateProject2()">
+                            </asp:DropDownList></asp:TableCell>
+                        <asp:TableCell>Source 2 Dataset</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource2Dataset" runat="server" onchange="updateDataset2()">
+                            </asp:DropDownList></asp:TableCell>
+                            <asp:TableCell></asp:TableCell>
+                    </asp:TableRow>
+                    <asp:TableRow ID="newJoinRow">
+                        <asp:TableCell>Source 1 Linking Field</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource1LinkingField" runat="server" onchange="updateField1()">
+                            </asp:DropDownList></asp:TableCell>
+                        <asp:TableCell>Source 2 Linking Field</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboSource2LinkingField" runat="server" onchange="updateField2()">
+                            </asp:DropDownList></asp:TableCell>
+                            <asp:TableCell>
+                            <asp:LinkButton ID="btnAddLink" runat="server" CssClass="squarebutton" OnClick="btnAddLink_Click"><span>Add Link</span></asp:LinkButton></asp:TableCell>
+                    </asp:TableRow>
+                    <asp:TableRow ID="typeRow">
+                        <asp:TableCell>Join Type:</asp:TableCell>
+                        <asp:TableCell><asp:DropDownList ID="comboJoinType" runat="server">
                                 <asp:ListItem Text="Matches Only" Value="0"></asp:ListItem>
                                 <asp:ListItem Text="All Fields from Source 1" Value="1"></asp:ListItem>
                                 <asp:ListItem Text="All Fields from Source 2" Value="2"></asp:ListItem>
                                 <asp:ListItem Text="All Fields from Both Sources" Value="3"></asp:ListItem>
-                            </asp:DropDownList>
-                        </td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </table>
+                            </asp:DropDownList></asp:TableCell>
+                        <asp:TableCell></asp:TableCell>
+                        <asp:TableCell></asp:TableCell>
+                        <asp:TableCell></asp:TableCell>
+                    </asp:TableRow>
+                </asp:Table>
                 <table border="0">
                     <tr>
                         <td>
@@ -391,6 +389,7 @@
             <asp:HiddenField ID="selectedDS2" runat="server" />
             <asp:HiddenField ID="selectedField1" runat="server" />
             <asp:HiddenField ID="selectedField2" runat="server" />
+            <asp:HiddenField ID="removeField" runat="server" />
         </div>
     </div>
     </form>

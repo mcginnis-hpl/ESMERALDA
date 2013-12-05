@@ -23,15 +23,13 @@ namespace ESMERALDA
             {
                 if (value)
                 {
-                    available.Visible = false;
-                    controls.Visible = false;
-                    listSelectedUsers.Enabled = false;
+                    dynamicChooser.Visible = false;
+                    staticChooser.Visible = true;
                 }
                 else
                 {
-                    available.Visible = true;
-                    controls.Visible = true;
-                    listSelectedUsers.Enabled = true;
+                    dynamicChooser.Visible = true;
+                    staticChooser.Visible = false;
                 }
             }
         }
@@ -40,25 +38,19 @@ namespace ESMERALDA
         {
             if (listAvailableUsers.Items.Count <= 0)
             {
-                SqlCommand query = new SqlCommand
+                List<Person> folks = inEntity.GetEligibleUsers(conn);
+                foreach (Person p in folks)
                 {
-                    CommandType = CommandType.StoredProcedure,
-                    CommandText = "sp_ESMERALDA_GetPersonList",
-                    CommandTimeout = 60,
-                    Connection = conn
-                };
-                SqlDataReader reader = query.ExecuteReader();
-                Guid personid = Guid.Empty;
-                while (reader.Read())
-                {
-                    string label = reader["first_name"].ToString() + " " + reader["last_name"].ToString() + " (" + reader["affiliation"].ToString() + ")";
-                    personid = new Guid(reader["personid"].ToString());
-                    string val = personid.ToString();
-                    listAvailableUsers.Items.Add(new ListItem(label, val));                    
+                    string label = p.GetMetadataValue("firstname") + " " + p.GetMetadataValue("lastname") + " (" + p.GetMetadataValue("cntorg") + ")";
+                    string val = p.ID.ToString();
+                    listAvailableUsers.Items.Add(new ListItem(label, val));
                 }
-                reader.Close();
             }
             listSelectedUsers.Items.Clear();
+            while (staticChooser.Rows.Count > 1)
+            {
+                staticChooser.Rows.RemoveAt(staticChooser.Rows.Count - 1);
+            }
             userValues.Value = string.Empty;
             relationshipValues.Value = string.Empty;
 
@@ -66,10 +58,21 @@ namespace ESMERALDA
             {                
                 foreach (PersonRelationship pr in inEntity.Relationships)
                 {
+                    bool found = false;
                     foreach (ListItem li in listAvailableUsers.Items)
                     {
                         if (li.Value == pr.person.ID.ToString())
                         {
+                            found = true;
+                            TableRow tr = new TableRow();
+                            TableCell td = new TableCell();
+                            td.Text = li.Text;
+                            tr.Cells.Add(td);
+                            td = new TableCell();
+                            td.Text = pr.relationship;
+                            tr.Cells.Add(td);
+                            staticChooser.Rows.Add(tr);
+
                             ListItem li2 = new ListItem(li.Text + ": " + pr.relationship, li.Value);                            
                             listSelectedUsers.Items.Add(li2);
                             if (string.IsNullOrEmpty(userValues.Value))
@@ -83,6 +86,33 @@ namespace ESMERALDA
                                 relationshipValues.Value = relationshipValues.Value + "|" + pr.relationship;
                             }
                             break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        string label = pr.GetMetadataValue("firstname") + " " + pr.GetMetadataValue("lastname") + " (" + pr.GetMetadataValue("cntorg") + ")";
+                        string val = pr.ID.ToString();
+
+                        TableRow tr = new TableRow();
+                        TableCell td = new TableCell();
+                        td.Text = label;
+                        tr.Cells.Add(td);
+                        td = new TableCell();
+                        td.Text = pr.relationship;
+                        tr.Cells.Add(td);
+                        staticChooser.Rows.Add(tr);
+
+                        ListItem li2 = new ListItem(label + ": " + pr.relationship, val);
+                        listSelectedUsers.Items.Add(li2);
+                        if (string.IsNullOrEmpty(userValues.Value))
+                        {
+                            userValues.Value = li2.Value;
+                            relationshipValues.Value = pr.relationship;
+                        }
+                        else
+                        {
+                            userValues.Value = userValues.Value + "|" + li2.Value;
+                            relationshipValues.Value = relationshipValues.Value + "|" + pr.relationship;
                         }
                     }
                 }

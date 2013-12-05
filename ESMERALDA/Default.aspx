@@ -4,7 +4,6 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
-    <title>ESMERALDA - Environmental Science Metadata-Enhanced Repository for Analysis, Lookup, and Data Archiving</title>
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
     <script type="text/javascript" language="javascript">
         function resizeIframe(newHeight) {
@@ -52,8 +51,8 @@
 
 <div id="header">
 
-<h1>ESMERALDA</h1>
-<h2>Environmental Science Metadata-Enhanced Repository for Analysis, Lookup, and Data Archiving</h2>
+<h1><span id="pagestring_shortname" runat="server"></span></h1>
+<h2><span id="pagestring_fullname" runat="server"></span></h2>
 <h3><span id="versionNumber" runat="server"></span></h3>
 </div>
 

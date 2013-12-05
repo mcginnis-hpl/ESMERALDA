@@ -345,8 +345,14 @@ A:hover {
 }
 
 .downloadmenu 
-{
-    display: none;
+{    
+    border-width: 2px;
+	border-spacing: 2px;
+	border-style: outset;
+	border-color: black;
+	border-collapse: separate;
+	background-color: white;
+	position: absolute;
 }
 
 .inlinemenu {
@@ -402,3 +408,20 @@ color: black;
 .clearfix {display:block;}
 /* End hide from IE Mac */
 * html .clearfix {height:1px;}
+
+.scaled_container {
+    display: inline-block;
+    position: relative;
+    width: 50%;
+}
+.scaled_dummy {
+    margin-top: 75%; /* 4:3 aspect ratio */
+}
+.scaled_element {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: silver /* show me! */
+}

@@ -34,7 +34,7 @@ namespace ESMERALDA
                     base.ShowAlert("Passwords do not match.");
                     return;
                 }
-                if (base.GetUserID(conn) == inperson.ID && string.IsNullOrEmpty(this.txtPasswordNew.Text))
+                /*if (base.GetUserID(conn) == inperson.ID && string.IsNullOrEmpty(this.txtPasswordNew.Text))
                 {
                     base.ShowAlert("Your password can not be empty.");
                     return;
@@ -43,7 +43,7 @@ namespace ESMERALDA
                 {
                     base.ShowAlert("Your email address can not be empty.");
                     return;
-                }
+                }*/
                 inperson.SetMetadataValue("firstname", this.txtFirstName.Text);
                 inperson.SetMetadataValue("lastname", this.txtLastName.Text);
                 inperson.SetMetadataValue("address", this.txtAddress1.Text + (string.IsNullOrEmpty(txtAddress2.Text) ? "\n" + txtAddress2.Text : string.Empty));
@@ -72,7 +72,7 @@ namespace ESMERALDA
                 else
                 {
                     inperson.Save(conn);
-                    if (!string.IsNullOrEmpty(txtPassword.Text))
+                    if (!string.IsNullOrEmpty(txtPasswordNew.Text))
                     {
                         SqlCommand cmd = new SqlCommand("sp_ESMERALDA_RegisterUser", conn)
                         {
@@ -97,8 +97,9 @@ namespace ESMERALDA
                     conn.Close();
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                ShowAlert(ex.Message + ": " + ex.StackTrace);
             }
             finally
             {
@@ -110,6 +111,10 @@ namespace ESMERALDA
         protected void Login()
         {
             Person p = (Person)GetSessionValue("WorkingPerson");
+            if (p == null)
+            {
+                p = new Person();
+            }
             bool passwordMatch = false;
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             SqlCommand cmd = new SqlCommand("sp_ESMERALDA_LookupUser", conn)
@@ -199,10 +204,12 @@ namespace ESMERALDA
             if (isLogin && !base.IsAuthenticated)
             {
                 this.login.Visible = true;
+                btnLogout.Visible = false;
             }
             else
             {
                 this.login.Visible = false;
+                btnLogout.Visible = true;
             }
             if (!IsAuthenticated)
             {
@@ -303,8 +310,8 @@ namespace ESMERALDA
             }
             else if (IsAuthenticated)
             {
-                this.txtPasswordNew.Enabled = false;
-                this.txtPasswordConfirm.Enabled = false;
+                this.txtPasswordNew.Enabled = true;
+                this.txtPasswordConfirm.Enabled = true;
                 this.txtEmail.ReadOnly = false;
                 this.txtFirstName.ReadOnly = false;
                 this.txtLastName.ReadOnly = false;
@@ -341,6 +348,27 @@ namespace ESMERALDA
                 this.txtPasswordNew.Enabled = true;
                 this.txtPasswordConfirm.Enabled = true;
             }
+            if (IsAuthenticated && UserIsAdministrator)
+            {
+                comboUserList.Items.Clear();
+                comboUserList.Items.Add(new ListItem(string.Empty, string.Empty));
+                SqlCommand cmd = new SqlCommand()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.StoredProcedure,
+                    CommandText = "sp_ESMERALDA_GetPersonList"
+                };
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (!reader.IsDBNull(reader.GetOrdinal("personid")))
+                    {
+                        ListItem li = new ListItem(reader["first_name"].ToString() + " " + reader["last_name"].ToString() + " (" + reader["affiliation"].ToString() + ")", reader["personid"].ToString());
+                        comboUserList.Items.Add(li);
+                    }
+                }
+                reader.Close();
+            }
         }
 
         protected void txtPassword_TextChanged(object sender, EventArgs e)
@@ -350,6 +378,42 @@ namespace ESMERALDA
 
         protected void btnNewUser_Click(object sender, EventArgs e)
         {
+            Person p = new Person();
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            this.PopulateData(p, conn);
+            conn.Close();
+            SetSessionValue("WorkingPerson", p);
+        }
+
+        protected void comboUserList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            Guid personid = Guid.Empty;
+            Person p = new Person();
+            if (!string.IsNullOrEmpty(comboUserList.SelectedValue))
+            {
+                if (comboUserList.SelectedIndex >= 0)
+                {
+                    personid = new Guid(comboUserList.SelectedValue);
+                }
+                if (personid != Guid.Empty)
+                {                    
+                    p.Load(conn, personid);                    
+                    SetSessionValue("WorkingPerson", p);
+                }
+            }
+            this.PopulateData(p, conn);
+            conn.Close();
+        }
+
+        protected void btnLogout_Click(object sender, EventArgs e)
+        {
+            Logout();
+            this.login.Visible = true;
+            persondata.Visible = false;
+            btnNewUser.Visible = false;
+            btnLogout.Visible = false;
+            RemoveSessionValue("WorkingPerson");
             Person p = new Person();
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             this.PopulateData(p, conn);

@@ -58,6 +58,33 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.Label lblViewSQLName;
         
         /// <summary>
+        /// chkIsPublic control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkIsPublic;
+        
+        /// <summary>
+        /// tblJoinInfo control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Table tblJoinInfo;
+        
+        /// <summary>
+        /// source1Row control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TableRow source1Row;
+        
+        /// <summary>
         /// comboSource1Project control.
         /// </summary>
         /// <remarks>
@@ -74,6 +101,15 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList comboSource1Dataset;
+        
+        /// <summary>
+        /// source2Row control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TableRow source2Row;
         
         /// <summary>
         /// comboSource2Project control.
@@ -94,6 +130,15 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.DropDownList comboSource2Dataset;
         
         /// <summary>
+        /// newJoinRow control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TableRow newJoinRow;
+        
+        /// <summary>
         /// comboSource1LinkingField control.
         /// </summary>
         /// <remarks>
@@ -110,6 +155,24 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList comboSource2LinkingField;
+        
+        /// <summary>
+        /// btnAddLink control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton btnAddLink;
+        
+        /// <summary>
+        /// typeRow control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TableRow typeRow;
         
         /// <summary>
         /// comboJoinType control.
@@ -191,5 +254,14 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField selectedField2;
+        
+        /// <summary>
+        /// removeField control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField removeField;
     }
 }

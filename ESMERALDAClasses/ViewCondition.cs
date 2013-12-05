@@ -151,7 +151,7 @@ namespace ESMERALDAClasses
                 View parent = (View)this.Parent;
                 if (this.SourceField == null)
                     return string.Empty;
-                return ("[" + parent.SourceData.ParentProject.database_name + "].[dbo].[" + parent.SourceData.SQLName + "].[" + this.SourceField.SQLColumnName + "]");
+                return ("[" + parent.SourceData.ParentContainer.database_name + "].[dbo].[" + parent.SourceData.SQLName + "].[" + this.SourceField.SQLColumnName + "]");
             }
         }
 

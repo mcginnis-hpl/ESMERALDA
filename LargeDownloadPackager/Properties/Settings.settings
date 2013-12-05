@@ -1,0 +1,24 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="LargeDownloadPackager.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="emailpassword" Type="System.String" Scope="User">
+      <Value Profile="(Default)">!m3tPurch@$3</Value>
+    </Setting>
+    <Setting Name="emailaddress" Type="System.String" Scope="User">
+      <Value Profile="(Default)">imetps@umces.edu</Value>
+    </Setting>
+    <Setting Name="emailuser" Type="System.String" Scope="User">
+      <Value Profile="(Default)">imetps</Value>
+    </Setting>
+    <Setting Name="emailhost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">hpl.hpl.umces.edu</Value>
+    </Setting>
+    <Setting Name="emailport" Type="System.String" Scope="User">
+      <Value Profile="(Default)">587</Value>
+    </Setting>
+    <Setting Name="metadata_conn" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Server=10.1.13.205;Database=GISR_Metadata; User Id=SqlServer_Client; password= p@$$w0rd</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

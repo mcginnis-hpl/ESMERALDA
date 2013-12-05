@@ -31,6 +31,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="LumenWorks.Framework.IO, Version=3.8.0.0, Culture=neutral, PublicKeyToken=5ad3ea2f85776344, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\CSVReader\LumenWorks.Framework.IO\bin\Debug\LumenWorks.Framework.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Research.Science.Data, Version=1.2.6754.0, Culture=neutral, PublicKeyToken=e550de0161496f12, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Research.Science.Data.CSV, Version=1.2.6754.0, Culture=neutral, PublicKeyToken=e550de0161496f12, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Research.Science.Data.Imperative, Version=1.2.6754.0, Culture=neutral, PublicKeyToken=e550de0161496f12, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Research.Science.Data.Memory, Version=1.2.6754.0, Culture=neutral, PublicKeyToken=e550de0161496f12, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -40,13 +48,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AttachedFile.cs" />
+    <Compile Include="Container.cs" />
     <Compile Include="Conversion.cs" />
+    <Compile Include="Cruise.cs" />
     <Compile Include="Dataset.cs" />
+    <Compile Include="DownloadRequest.cs" />
     <Compile Include="EsmeraldaEntity.cs" />
     <Compile Include="Field.cs" />
     <Compile Include="Join.cs" />
-    <Compile Include="LinkedFile.cs" />
     <Compile Include="Metric.cs" />
+    <Compile Include="ModelDataset.cs" />
     <Compile Include="Ordered!1.cs" />
     <Compile Include="Person.cs" />
     <Compile Include="Point.cs" />

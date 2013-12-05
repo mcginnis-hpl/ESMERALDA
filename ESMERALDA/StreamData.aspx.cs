@@ -30,7 +30,7 @@ namespace ESMERALDA
             }
             if(viewid != Guid.Empty)
             {
-                ESMERALDAClasses.View working = (ESMERALDAClasses.View)GetSessionValue(viewid.ToString());
+                ESMERALDAClasses.View working = (ESMERALDAClasses.View)GetSessionValueCrossPage(viewid.ToString());
                 DateTime start = DateTime.Now;
                 PopulateData(working, numrows);
                 System.Diagnostics.Debug.WriteLine("New way: " + (DateTime.Now - start).TotalMilliseconds.ToString() + "ms");
@@ -39,15 +39,14 @@ namespace ESMERALDA
 
         protected void PopulateData(ESMERALDAClasses.View working, int numrows)
         {
-            string dbname = working.SourceData.ParentProject.database_name;            
+            string dbname = working.SourceData.ParentContainer.database_name;            
             SqlConnection conn = base.ConnectToDatabaseReadOnly(dbname);
 
             Response.Write("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
             Response.Write("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head runat=\"server\"><title></title>");
             Random r = new Random();
             Response.Write("<link href=\"css/style.css?foo=" + r.Next().ToString() + "\" type=\"text/css\" rel=\"stylesheet\" /></head>");
-            Response.Write("<body style='background-color:white'><div>");            
-            Response.Write("<table class='previewTable'>");
+            Response.Write("<body style='background-color:white'><div>");                        
             SqlDataReader reader = null;
             SqlCommand query = null;
             string mod_flag = string.Empty;
@@ -68,9 +67,13 @@ namespace ESMERALDA
                     reader = query.ExecuteReader();
                 }
                 catch (Exception ex)
-                {                    
+                {        
+                    string msg = "<p>An error occurred.  Make sure that your filters are correct (dates and text strings must have single quotes around them).</p><p>" + ex.Message + ": " + ex.StackTrace + "</p>";
+                    Response.Write(msg);
+                    Response.Write("</div></body>");
                     return;
                 }
+                Response.Write("<table class='previewTable'>");
                 while (reader.Read())
                 {
                     if(!header_done)
@@ -79,7 +82,16 @@ namespace ESMERALDA
                         i = 0;
                         while (i < reader.FieldCount)
                         {
-                            Response.Write("<th>" + reader.GetName(i) + "</th>");
+                            string label = reader.GetName(i);
+                            foreach (QueryField f in working.Header)
+                            {
+                                if (f.SQLColumnName == label)
+                                {
+                                    label = f.Name;
+                                    break;
+                                }
+                            }
+                            Response.Write("<th>" + label + "</th>");
                             i++;
                         }                        
                         Response.Write("</tr>");
@@ -97,17 +109,7 @@ namespace ESMERALDA
             else
             {
                 string cmd = working.GetQuery(numrows);
-                i = 0;
-                Response.Write("<tr>");
-                while (i < working.Header.Count)
-                {
-                    if ((((ViewCondition)working.Header[i]).SourceField != null) && (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude))
-                    {
-                        Response.Write("<th>" + ((ViewCondition)working.Header[i]).SQLColumnName + "</th>");
-                    }
-                    i++;
-                }
-                Response.Write("</tr>");
+                i = 0;               
                 if (!string.IsNullOrEmpty(cmd))
                 {
                     try
@@ -116,8 +118,22 @@ namespace ESMERALDA
                     }
                     catch (Exception ex)
                     {
+                        string msg = "<p>An error occurred.  Make sure that your filters are correct (dates and text strings must have single quotes around them).</p><p>" + ex.Message + ": " + ex.StackTrace + "</p>";
+                        Response.Write(msg);
+                        Response.Write("</div></body>");
                         return;
                     }
+                    Response.Write("<table class='previewTable'>");
+                    Response.Write("<tr>");
+                    while (i < working.Header.Count)
+                    {
+                        if ((((ViewCondition)working.Header[i]).SourceField != null) && (((ViewCondition)working.Header[i]).Type != ViewCondition.ConditionType.Exclude))
+                        {
+                            Response.Write("<th>" + ((ViewCondition)working.Header[i]).Name + "</th>");
+                        }
+                        i++;
+                    }
+                    Response.Write("</tr>");
                     while (reader.Read())
                     {
                         Response.Write("<tr>");

@@ -1,227 +1,244 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="VisualizeView.aspx.cs" Inherits="ESMERALDA.VisualizeView" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="VisualizeView.aspx.cs"
+    Inherits="ESMERALDA.VisualizeView" %>
 
+<%@ Register Assembly="System.Web.DataVisualization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"
+    Namespace="System.Web.UI.DataVisualization.Charting" TagPrefix="asp" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
-        <title>Visualize a View</title>
+    <title>Visualize a View</title>
     <link href="css/style.css?t=<%= DateTime.Now.Ticks %>" type="text/css" rel="stylesheet" />
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript">
-
-        // Load the Visualization API and the piechart package.
-        google.load('visualization', '1.0', { 'packages': ['corechart'] });
-
-        // Set a callback to run when the Google Visualization API is loaded.
-        google.setOnLoadCallback(drawChart);
-
-        // Callback that creates and populates a data table,
-        // instantiates the pie chart, passes in the data and
-        // draws it.
-        function drawChart() {
-            var chart_type = document.getElementById("chartType").value;
-
-            var label_control = document.getElementById("labels");
-            var label_tokens = label_control.value.split("~");
-            var type_control = document.getElementById("types");
-            var type_tokens = type_control.value.split("~");
-
-            var data_string = document.getElementById("points").value;
-            if (!data_string || data_string.length == 0)
-                return;
-            var data = new google.visualization.DataTable();
-
-            var i = 0;
-            for (i = 0; i < label_tokens.length; i++) {
-                if (type_tokens[i] == "Integer" || type_tokens[i] == "Decimal") {
-                    data.addColumn('number', label_tokens[i]);
-                }
-                else if (type_tokens[i] == "DateTime" || type_tokens[i] == "Time") {
-                    if (chart_type == "BAR" || chart_type == "COLUMN") {
-                        data.addColumn('string', label_tokens[i]);
-                    }
-                    else {
-                        data.addColumn('date', label_tokens[i]);
-                    }
-                }
-                else {
-                    data.addColumn('string', label_tokens[i]);
-                }
+        function getOffset(el) {
+            var _x = 0;
+            var _y = 0;
+            while (el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {
+                _x += el.offsetLeft - el.scrollLeft;
+                _y += el.offsetTop - el.scrollTop;
+                el = el.offsetParent;
             }
-                        
-            var rows = data_string.split(";");
-            if (!rows)
-                return;
-            for (var i = 0; i < rows.length; i++) {
-                new_row = new Array();
-                var points = rows[i].split(",");
-                for (var j = 0; j < points.length; j++) {
-                    if (type_tokens[j] == "Integer" || type_tokens[j] == "Decimal") {
-                        new_row.push(Number(points[j]));
-                    }
-                    else if (type_tokens[j] == "DateTime" || type_tokens[j] == "Time") {
-                        if (chart_type == "BAR" || chart_type == "COLUMN") {
-                            new_row.push(points[j]);
-                        }
-                        else {
-                            new_row.push(new Date(Date.parse(points[j])));
-                        }
-                    }
-                    else {
-                        new_row.push(points[j]);
-                    }
-                }                
-                data.addRow(new_row);
-            }
-
-            if (chart_type == "SCATTER") {
-                var options = {
-                    title: label_tokens[0] + ' vs. ' + label_tokens[1],
-                    hAxis: { title: label_tokens[0] },
-                    vAxis: { title: label_tokens[1] },
-                    legend: 'none'
-                };
-                var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));
-                chart.draw(data, options);
-            }
-            else if (chart_type == "LINE") {
-                var options = {
-                    title: label_tokens[0] + ' vs. ' + label_tokens[1],
-                    hAxis: { title: label_tokens[0] },
-                    vAxis: { title: label_tokens[1] },
-                    legend: 'none'
-                };
-                var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-                chart.draw(data, options);
-            }
-            else if (chart_type == "COLUMN") {
-                var options = {
-                    title: label_tokens[0] + ' vs. ' + label_tokens[1],
-                    hAxis: { title: label_tokens[0], titleTextStyle: { color: 'red'} }
-                };
-
-                var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-                chart.draw(data, options);
-            }
-            else if (chart_type == "BAR") {
-                var options = {
-                    title: label_tokens[0] + ' vs. ' + label_tokens[1],
-                    vAxis: { title: label_tokens[0], titleTextStyle: { color: 'red'} }
-                };
-
-                var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
-                chart.draw(data, options);
-            }
+            return { top: _y, left: _x };
         }
 
-        function handleTypeChange() {
-            var chart_type = document.getElementById("comboGraphType").value;
-            if (chart_type == "SCATTER" || chart_type == "LINE") {
-                var el = document.getElementById("control_xAxis");
-                el.style.display = 'inherit';
-                el = document.getElementById("control_yAxis");
-                el.style.display = 'inherit';
-                el = document.getElementById("control_field1");
-                el.style.display = 'none';
-                el = document.getElementById("control_field2");
-                el.style.display = 'none';
-                el = document.getElementById("control_field3");
-                el.style.display = 'none';
-                el = document.getElementById("control_field4");
-                el.style.display = 'none';
+        function addField() {
+            var reldiv = document.getElementById("colordiv");
+            var ap = document.getElementById('addlink');
+            document.getElementById('<%=txtColor.ClientID %>').value = "";
+            reldiv.style.display = "inherit";
+
+            reldiv.style.top = (getOffset(ap).top) + "px";
+            document.getElementById('<%=txtColor.ClientID %>').focus();
+        }
+
+        function cancelAddUser() {
+            document.getElementById('<%=txtColor.ClientID %>').value = "";
+            series.checked = false;
+            var reldiv = document.getElementById("colordiv");
+            reldiv.style.display = "none";
+        }
+
+        function removeField() {
+            var list = document.getElementById('<%=listSelectedFields.ClientID %>');
+            var i = 0;
+            var user_list = document.getElementById('<%=fieldValues.ClientID %>').value.split("|");
+            var rel_list = document.getElementById('<%=colorValues.ClientID %>').value.split("|");
+            var series_list = document.getElementById('<%=seriesValues.ClientID %>').value.split("|");
+
+            while (i < list.options.length) {
+                var item = list.options[i];
+                if (item.selected) {
+                    list.remove(i);
+                    user_list.splice(i, 1);
+                    rel_list.splice(i, 1);
+                    series_list.splice(i, 1);
+                }
+                else {
+                    i = i + 1;
+                }
             }
-            else if (chart_type == "COLUMN" || chart_type == "BAR") {
-                var el = document.getElementById("control_xAxis");
-                el.style.display = 'none';
-                el = document.getElementById("control_yAxis");
-                el.style.display = 'none';
-                el = document.getElementById("control_field1");
-                el.style.display = 'inherit';
-                el = document.getElementById("control_field2");
-                el.style.display = 'inherit';
-                el = document.getElementById("control_field3");
-                el.style.display = 'inherit';
-                el = document.getElementById("control_field4");
-                el.style.display = 'inherit';
+            var new_field_list = "";
+            var new_color_list = "";
+            var new_series_list = "";
+            if (user_list.length > 0) {
+                new_field_list = user_list[0];
+                new_color_list = rel_list[0];
+                new_series_list = series_list[0];
+
+                for (i = 1; i < user_list.length; i++) {
+                    new_field_list = new_field_list + "|" + user_list[i];
+                    new_color_list = new_color_list + "|" + rel_list[i];
+                    new_series_list = new_series_list + "|" + series_list[i];
+                }
             }
+            document.getElementById('<%=fieldValues.ClientID %>').value = new_field_list;
+            document.getElementById('<%=colorValues.ClientID %>').value = new_color_list;
+            document.getElementById('<%=seriesValues.ClientID %>').value = new_series_list;
+        }
+
+        function commitAddField() {
+            var list = document.getElementById('<%=listAvailableFields.ClientID %>');
+            var rel = document.getElementById('<%=txtColor.ClientID %>').value;
+            var series = document.getElementById('<%=chkSeries.ClientID %>');
+
+            var new_field = "";
+            var new_color = "";
+            var new_series = "";
+
+            var field_id = new Array();
+            var field_name = new Array();
+            var i = 0;
+            while (i < list.options.length) {
+                var item = list.options[i];
+                if (item.selected) {
+                    field_id.push(item.value);
+                    field_name.push(item.text);
+
+                    if (new_field.length <= 0) {
+                        new_field = item.value;
+                        new_color = rel;
+                        if (series.checked) {
+                            new_series = "1";
+                        }
+                        else {
+                            new_series = "0";
+                        }                      
+                    }
+                    else {
+                        new_field = new_field + "|" + item.value;
+                        new_color = new_color + "|" + rel;
+                        if (series.checked) {
+                            new_series = new_series + "|1";
+                        }
+                        else {
+                            new_series = new_series + "|0";
+                        }
+                    }
+                }
+                i += 1;
+            }
+            if (document.getElementById('<%=fieldValues.ClientID %>').value.length == 0) {
+                document.getElementById('<%=fieldValues.ClientID %>').value = new_field;
+                document.getElementById('<%=colorValues.ClientID %>').value = new_color;
+                document.getElementById('<%=seriesValues.ClientID %>').value = new_series;
+            }
+            else {
+                document.getElementById('<%=fieldValues.ClientID %>').value = document.getElementById('<%=fieldValues.ClientID %>').value + "|" + new_field;
+                document.getElementById('<%=colorValues.ClientID %>').value = document.getElementById('<%=colorValues.ClientID %>').value + "|" + new_color;
+                document.getElementById('<%=seriesValues.ClientID %>').value = document.getElementById('<%=seriesValues.ClientID %>').value + "|" + new_series;
+            }
+            var dest_list = document.getElementById('<%=listSelectedFields.ClientID %>');
+            var myOption;
+            for (i = field_id.length - 1; i >= 0; i--) {
+                myOption = document.createElement("Option");
+                myOption.text = field_name[i] + ": " + rel;
+                myOption.value = field_id[i];
+                dest_list.add(myOption);
+            }
+
+            var reldiv = document.getElementById("colordiv");
+            reldiv.style.display = "none";
+            document.getElementById('<%=txtColor.ClientID %>').value = "";
+            series.checked = false;
+        } 
+        
+        function wndsize() {
+            var w = 0; var h = 0;
+            //IE
+            if (!window.innerWidth) {
+                if (!(document.documentElement.clientWidth == 0)) {
+                    //strict mode
+                    w = document.documentElement.clientWidth; h = document.documentElement.clientHeight;
+                } else {
+                    //quirks mode
+                    w = document.body.clientWidth; h = document.body.clientHeight;
+                }
+            } else {
+                //w3c
+                w = window.innerWidth; h = window.innerHeight;
+            }
+            var el = document.getElementById("pageWidth");
+            el.value = w.toString() + "," + h.toString();
         }
     </script>
 </head>
-<body onload="handleTypeChange()">
+<body onload="wndsize()">
     <form id="form1" runat="server">
-        <div id="page_wrapper">
-            <div id="pagecontent">
-                <div id="controls">
-                    <h4>Create a Data Visualization</h4>
-                    <table border="0px">
-                        <tr>
-                            <td>Graph Type</td>
-                            <td>
-                                <asp:DropDownList ID="comboGraphType" runat="server" onchange="handleTypeChange()">
-                                    <asp:ListItem Text="Scatter" Value="SCATTER"></asp:ListItem>
-                                    <asp:ListItem Text="Line" Value="LINE"></asp:ListItem>
-                                    <asp:ListItem Text="Column" Value="COLUMN"></asp:ListItem>
-                                    <asp:ListItem Text="Bar" Value="BAR"></asp:ListItem>
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_xAxis">
-                            <td>X Axis:</td>
-                            <td>
-                                <asp:DropDownList ID="comboXAxis" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_yAxis">
-                            <td>Y Axis:</td>
-                            <td>
-                                <asp:DropDownList ID="comboYAxis" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_field1">
-                            <td>Field 1:</td>
-                            <td>
-                                <asp:DropDownList ID="comboField1" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_field2">
-                            <td>Field 2:</td>
-                            <td>
-                                <asp:DropDownList ID="comboField2" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_field3">
-                            <td>Field 3:</td>
-                            <td>
-                                <asp:DropDownList ID="comboField3" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr id="control_field4">
-                            <td>Field 4:</td>
-                            <td>
-                                <asp:DropDownList ID="comboField4" runat="server">
-                                </asp:DropDownList>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" align="center">
-                                <asp:LinkButton ID="btnCreateGraph" runat="server" 
-                                    onclick="btnCreateGraph_Click" CssClass="squarebutton"><span>Create Graph</span></asp:LinkButton></td>
-                        </tr>
-                    </table>
-                </div>
-                <div id="chart_div">
-                </div>
+    <div id="page_wrapper">
+        <div id="pagecontent" style="width:100%">
+            <div id="controls">
+                <h4>
+                    Create a Data Visualization</h4>
+                    <p>Use the controls below to build a visualization.  To select a field from the dataset, pick the field's name in the left list and click the "->" button.  Enter a color in HTML format (#RRGGBB), or leave the color blank to let ESMERALDA pick the color of the dataset for you.  Click "Commit" to add the field.</p>
+                    <p>The first field in the Selected list will be the "X" value for any graph (or the category, for bar and column graphs).</p>
+                    <p>When you have entered all of your values, click "Create Graph" to view your visualization.</p>
+                <table border="0px">
+                    <tr>
+                        <td colspan="1">
+                            Graph Type
+                        </td>
+                        <td colspan="3">
+                            <asp:DropDownList ID="comboGraphType" runat="server">
+                            </asp:DropDownList>
+                        </td>                        
+                    </tr>
+                    <tr>
+                        <td>
+                            Available Fields
+                        </td>
+                        <td></td>
+                        <td>
+                            Selected Fields
+                        </td>
+                        <td>
+                            Colors
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <asp:ListBox ID="listAvailableFields" runat="server" Height="180px"></asp:ListBox>
+                        </td>
+                        <td>
+                            <table border='0'>
+                                <tr><td><a id="addlink" href='javascript:addField()'>-></a></td></tr>
+                                <tr><td><a href='javascript:removeField()'><-</a></td></tr>
+                            </table>                            
+                        </td>
+                        <td>
+                            <asp:ListBox ID="listSelectedFields" runat="server" Height="180px"></asp:ListBox>                            
+                        </td>
+                        <td>
+                            <asp:ListBox ID="listColors" runat="server" Height="180px"></asp:ListBox>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" align="center">
+                            <asp:LinkButton ID="btnCreateGraph" runat="server" OnClick="btnCreateGraph_Click"
+                                CssClass="squarebutton"><span>Create Graph</span></asp:LinkButton>
+                        </td>
+                    </tr>
+                </table>
             </div>
+            <asp:Chart ID="msChart" runat="server">                    
+                <ChartAreas>
+                    <asp:ChartArea Name="ChartArea1">
+                        <Area3DStyle />
+                    </asp:ChartArea>
+                </ChartAreas>
+            </asp:Chart>
         </div>
-        <asp:HiddenField ID="points" runat="server" />
-        <asp:HiddenField ID="labels" runat="server" />
-        <asp:HiddenField ID="types" runat="server" />
-        <asp:HiddenField ID="chartType" runat="server" />
+    </div>
+    <div id="colordiv" style="border: 1px solid #000; width:250px; position:absolute; margin:0 auto; background-color: #FFFFFF; display:none;">
+        Color: <asp:TextBox ID="txtColor" runat="server" 
+            Width="240px"></asp:TextBox>    
+        <asp:CheckBox ID="chkSeries" runat="server" Text="This value is a series key." />
+        <table border="0">
+            <tr><td><a class='squarebutton' href='javascript:commitAddField()'><span>Commit</span></a></td><td><a class='squarebutton' href='javascript:cancelAddField()'><span>Cancel</span></a></td></tr>
+        </table>        
+    </div>
+    <asp:HiddenField ID="fieldValues" runat="server" />
+    <asp:HiddenField ID="colorValues" runat="server" />
+    <asp:HiddenField ID="seriesValues" runat="server" />
+    <asp:HiddenField ID="pageWidth" runat="server" />
     </form>
 </body>
 </html>

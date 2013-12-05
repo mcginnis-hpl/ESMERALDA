@@ -10,44 +10,85 @@ namespace ESMERALDA
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            this.PopulatePrograms(conn);
-            conn.Close();
-            this.versionNumber.InnerHtml = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            if (!IsPostBack)
+            Page.Title = GetAppString("appstring_shortname") + " - " + GetAppString("appstring_fullname");
+            pagestring_fullname.InnerHtml = GetAppString("appstring_fullname");
+            pagestring_shortname.InnerHtml = GetAppString("appstring_shortname");
+            SqlConnection conn = null;
+            try
             {
-                Guid redirectid = Guid.Empty;
-                for (int i = 0; i < Request.Params.Count; i++)
+                conn = base.ConnectToConfigString("RepositoryConnection");
+                this.PopulateContainers(conn);
+                this.versionNumber.InnerHtml = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                if (!IsPostBack)
                 {
-                    if (Request.Params.GetKey(i).ToUpper() == "DATASETID")
+                    Guid redirectid = Guid.Empty;
+                    for (int i = 0; i < Request.Params.Count; i++)
                     {
-                        redirectid = new Guid(Request.Params[i]);
+                        if (Request.Params.GetKey(i).ToUpper() == "ENTITYID")
+                        {
+                            redirectid = new Guid(Request.Params[i]);
+                        }
+                    }                    
+                    if (redirectid != Guid.Empty)
+                    {
+                        string type = ESMERALDAClasses.Utils.GetEntityType(redirectid, conn);
+                        string url = string.Empty;
+                        if (type == "dataset")
+                        {
+                            url = "setContentSource(\"ViewDataset.aspx?DATASETID=" + redirectid.ToString() + "\")";                            
+                        }
+                        else if (type == "container")
+                        {
+                            url = "setContentSource(\"EditContainer.aspx?CONTAINERID=" + redirectid.ToString() + "\")";                            
+                        }
+                        else if (type == "view")
+                        {
+                            url = "setContentSource(\"ViewDataset.aspx?VIEWID=" + redirectid.ToString() + "\")";                            
+                        }
+                        if (!string.IsNullOrEmpty(url))
+                        {
+                            AddStartupCall(url, "directlink");
+                        }
                     }
                 }
-                if (redirectid != Guid.Empty)
-                {
-                    string url = "setContentSource(\"ViewDataset.aspx?DATASETID=" + redirectid.ToString() + "\")";
-                    AddStartupCall(url, "directlink");
-                }
+            }
+            catch (Exception ex)
+            {
+                ShowAlert(ex.Message + ": " + ex.StackTrace);
+            }
+            finally
+            {
+                if (conn != null)
+                    conn.Close();
             }
         }
 
-        protected void PopulatePrograms(SqlConnection conn)
+        protected void PopulateContainers(SqlConnection conn)
         {
-            string innerHTML = "<h3>Current Programs</h3><ul>";
-            string cmd = "SELECT program_id, program_name FROM v_ESMERALDA_program_metadata ORDER BY program_name";
+            string innerHTML = "<h3>Current Folders</h3><ul>";
+            string cmd = "SELECT container_id, entity_name FROM v_ESMERALDA_container_metadata WHERE parent_id IS NULL";
+            if (!UserIsAdministrator)
+            {
+                cmd += " AND (IsPublic=1";
+                if(IsAuthenticated && CurrentUser != null)
+                {
+                    cmd += " OR personid='" + CurrentUser.ID.ToString() + "'";
+                }
+                cmd += ")";
+            }
+            cmd += " GROUP BY container_id, entity_name ORDER BY entity_name";
             SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
             while (reader.Read())
             {
-                innerHTML = innerHTML + "<li><a href='javascript:setContentSource(\"EditProgram.aspx?PROGRAMID=" + reader["program_id"].ToString() + "\")'>" + reader["program_name"].ToString() + "</a></li>";
+                innerHTML = innerHTML + "<li><a href='javascript:setContentSource(\"EditContainer.aspx?CONTAINERID=" + reader["container_id"].ToString() + "\")'>" + reader["entity_name"].ToString() + "</a></li>";
             }
-            if (base.IsAuthenticated)
+            if (base.IsAuthenticated && CurrentUser != null)
             {
-                innerHTML = innerHTML + "<li><a href='javascript:setContentSource(\"EditProgram.aspx\")'>Add a new Program</a></li>";
+                innerHTML = innerHTML + "<li><a href='javascript:setContentSource(\"EditContainer.aspx\")'>Add a new top-level folder</a></li>";
             }
             reader.Close();
             innerHTML = innerHTML + "</ul>";
             this.left_side.InnerHtml = innerHTML;
-        }
+        }       
     }
 }

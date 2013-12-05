@@ -10,17 +10,48 @@ using System.Net;
 using System.Text;
 using System.IO;
 using HtmlAgilityPack;
+using Subgurim.Controles;
 
 namespace ESMERALDA
 {
     public partial class Search : ESMERALDAPage
-    {        
+    {
         protected void DoSearch_Experiment()
         {
             int i;
+            DateTime startDate = DateTime.MinValue;
+            if (!string.IsNullOrEmpty(txtStartDate.Text))
+            {
+                try
+                {
+                    startDate = DateTime.Parse(txtStartDate.Text);
+                }
+                catch (FormatException)
+                {
+                    ShowAlert("The start date is not properly formatted.");
+                    return;
+                }
+            }
+            DateTime endDate = DateTime.MinValue;
+            if (!string.IsNullOrEmpty(txtEndDate.Text))
+            {
+                try
+                {
+                    endDate = DateTime.Parse(txtEndDate.Text);
+                }
+                catch (FormatException)
+                {
+                    ShowAlert("The end date is not properly formatted.");
+                    return;
+                }
+            }
             string search_string = this.txtSearchByKeyword.Text.ToUpper();
             List<string> terms = this.GetSearchTerms(search_string);
             string bounds_string = this.searchCoords.Value;
+            if (!string.IsNullOrEmpty(txtMinLatitude.Text) && !string.IsNullOrEmpty(txtMinLongitude.Text) && !string.IsNullOrEmpty(txtMaxLatitude.Text) && !string.IsNullOrEmpty(txtMaxLongitude.Text))
+            {
+                bounds_string = txtMinLatitude.Text + " " + txtMinLongitude.Text + " " + txtMaxLatitude.Text + " " + txtMaxLongitude.Text;
+            }
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             List<Guid> inbounds_datasetids = new List<Guid>();
             string query = string.Empty;
@@ -35,7 +66,7 @@ namespace ESMERALDA
                 {
                     query += " OR CreatedBy='" + CurrentUser.ID + "'";
                 }
-                query += ")";               
+                query += ")";
                 query = query + " AND (";
                 query = query + "metadata_value LIKE '%" + terms[0] + "%'";
                 for (int j = 1; j < terms.Count; j++)
@@ -77,21 +108,57 @@ namespace ESMERALDA
                     {
                         foreach (string s in terms)
                         {
-                            if (s.IndexOf(ds_value) >= 0)
+                            if (ds_value.ToUpper().IndexOf(s) >= 0)
                             {
                                 result.MatchingKeywords.Add(ds_value);
                                 break;
                             }
                         }
                     }
-                }               
+                }
             }
             reader.Close();
+            if (startDate > DateTime.MinValue)
+            {
+                if (endDate == DateTime.MinValue)
+                    endDate = DateTime.Now;
+                query = "SELECT DISTINCT entity_id FROM entity_datetime_map WHERE entity_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
+                for (int j = 1; j < ret.Count; j++)
+                {
+                    query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
+                }
+                query += ")";
+                query += " AND timestamp >= '" + startDate.ToShortDateString() + "' AND timestamp <= '" + endDate.ToShortDateString() + "'";
+                querycmd = new SqlCommand
+                {
+                    Connection = conn,
+                    CommandTimeout = 60,
+                    CommandType = CommandType.Text,
+                    CommandText = query
+                };
+                reader = querycmd.ExecuteReader();
+                List<SearchResult> keepers = new List<SearchResult>();
+                while (reader.Read())
+                {
+                    Guid setid = new Guid(reader["entity_id"].ToString());
+                    if (!ret.ContainsKey(setid))
+                        continue;
+                    SearchResult sr = ret[setid];
+                    if (!keepers.Contains(sr))
+                        keepers.Add(sr);
+                }
+                reader.Close();
+                ret.Clear();
+                foreach (SearchResult sr in keepers)
+                {
+                    ret.Add(sr.DatasetID, sr);
+                }
+            }
             if (has_bounds && ret.Count > 0)
             {
                 tokens = bounds_string.Split(delim);
                 query = "SELECT min_lat, min_lon, max_lat, max_lon, dataset_id FROM v_ESMERALDA_geospatial_search_data WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
-                for(int j=1; j < ret.Count; j++)
+                for (int j = 1; j < ret.Count; j++)
                 {
                     query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
                 }
@@ -121,7 +188,7 @@ namespace ESMERALDA
                     if (!ret.ContainsKey(setid))
                         continue;
                     SearchResult sr = ret[setid];
-                    if(!keepers.Contains(sr))
+                    if (!keepers.Contains(sr))
                         keepers.Add(sr);
                 }
                 reader.Close();
@@ -133,7 +200,7 @@ namespace ESMERALDA
             }
             if (ret.Count > 0)
             {
-                query = "SELECT dataset_id, dataset_name, dataset_description, dataset_purpose, project_name, project_description, project_id, min_lat, min_lon, max_lat, max_lon FROM v_ESMERALDA_dataset_metadata WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
+                query = "SELECT dataset_id, dataset_name, dataset_description, dataset_purpose, container_name, container_description, container_id, min_lat, min_lon, max_lat, max_lon FROM v_ESMERALDA_dataset_metadata WHERE dataset_id IN ('" + ret[ret.Keys.ElementAt(0)].DatasetID.ToString() + "'";
                 for (int j = 1; j < ret.Count; j++)
                 {
                     query += ", '" + ret[ret.Keys.ElementAt(j)].DatasetID.ToString() + "'";
@@ -155,8 +222,8 @@ namespace ESMERALDA
                     result.DatasetName = reader["dataset_name"].ToString();
                     result.DatasetBriefDescription = reader["dataset_purpose"].ToString();
                     result.DatasetDescription = reader["dataset_description"].ToString();
-                    result.ProjectID = new Guid(reader["project_id"].ToString());
-                    result.ProjectName = reader["project_name"].ToString();
+                    result.ContainerID = new Guid(reader["container_id"].ToString());
+                    result.ContainerName = reader["container_name"].ToString();
                     if (!reader.IsDBNull(reader.GetOrdinal("min_lon")))
                     {
                         result.min_lat = double.Parse(reader["min_lat"].ToString());
@@ -184,7 +251,7 @@ namespace ESMERALDA
                         {
                             curr.Score++;
                         }
-                        if (curr.ProjectName.ToUpper().IndexOf(s) >= 0)
+                        if (curr.ContainerName.ToUpper().IndexOf(s) >= 0)
                         {
                             curr.Score++;
                         }
@@ -258,7 +325,7 @@ namespace ESMERALDA
                     thr.Cells.Add(thc);
                     thc = new TableHeaderCell
                     {
-                        Text = "Project"
+                        Text = "Folder"
                     };
                     thr.Cells.Add(thc);
                     thc = new TableHeaderCell
@@ -287,7 +354,7 @@ namespace ESMERALDA
                         tr.Cells.Add(tc);
                         tc = new TableCell
                         {
-                            Text = "<a href='EditProject.aspx?PROJECTID=" + ranked_results[i].ProjectID.ToString() + "'>" + ranked_results[i].ProjectName + "</a>"
+                            Text = "<a href='EditContainer.aspx?CONTAINERID=" + ranked_results[i].ContainerID.ToString() + "'>" + ranked_results[i].ContainerName + "</a>"
                         };
                         tr.Cells.Add(tc);
                         tc = new TableCell
@@ -342,65 +409,71 @@ namespace ESMERALDA
         protected List<SearchResult> SearchBCODMO(string searchstring)
         {
             List<SearchResult> ret = new List<SearchResult>();
-            WebRequest req = WebRequest.Create("http://osprey.bco-dmo.org/dataset.cfm?flag=search&sortby=name");
-            string postData = "searchFor=" + searchstring;
-
-            byte[] send = Encoding.Default.GetBytes(postData);
-            req.Method = "POST";
-            req.ContentType = "application/x-www-form-urlencoded";
-            req.ContentLength = send.Length;
-
-            Stream sout = req.GetRequestStream();
-            sout.Write(send, 0, send.Length);
-            sout.Flush();
-            sout.Close();
-
-            WebResponse res = req.GetResponse();
-            StreamReader sr = new StreamReader(res.GetResponseStream());
-            string returnvalue = sr.ReadToEnd();
-            HtmlDocument document = new HtmlDocument();
-            document.LoadHtml(returnvalue);
-            HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='entry']");
-            foreach (HtmlNode node in nodes)
+            try
             {
-                HtmlNodeCollection table_nodes = node.SelectNodes("table");
-                if(table_nodes == null)
-                    continue;
-                if (table_nodes.Count > 0)
+                WebRequest req = WebRequest.Create("http://osprey.bco-dmo.org/dataset.cfm?flag=search&sortby=name");
+                string postData = "searchFor=" + searchstring;
+
+                byte[] send = Encoding.Default.GetBytes(postData);
+                req.Method = "POST";
+                req.ContentType = "application/x-www-form-urlencoded";
+                req.ContentLength = send.Length;
+
+                Stream sout = req.GetRequestStream();
+                sout.Write(send, 0, send.Length);
+                sout.Flush();
+                sout.Close();
+
+                WebResponse res = req.GetResponse();
+                StreamReader sr = new StreamReader(res.GetResponseStream());
+                string returnvalue = sr.ReadToEnd();
+                HtmlDocument document = new HtmlDocument();
+                document.LoadHtml(returnvalue);
+                HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='entry']");
+                foreach (HtmlNode node in nodes)
                 {
-                    foreach (HtmlNode table_node in table_nodes)
+                    HtmlNodeCollection table_nodes = node.SelectNodes("table");
+                    if (table_nodes == null)
+                        continue;
+                    if (table_nodes.Count > 0)
                     {
-                        HtmlNodeCollection rows = table_node.SelectNodes("tr");
-                        if(rows == null)
-                            continue;
-                        foreach (HtmlNode row in rows)
+                        foreach (HtmlNode table_node in table_nodes)
                         {
-                            HtmlNodeCollection cells = row.SelectNodes("td");
-                            if(cells == null)
+                            HtmlNodeCollection rows = table_node.SelectNodes("tr");
+                            if (rows == null)
                                 continue;
-                            if (cells.Count < 2)
-                                continue;
-                            HtmlNode link = cells[0].SelectSingleNode("a");
-                            if (link != null)
+                            foreach (HtmlNode row in rows)
                             {
-                                SearchResult r = new SearchResult();
-                                r.DatasetName = link.InnerText;
-                                r.DatasetBriefDescription = cells[1].InnerText;
-                                r.isExternal = true;
-                                r.SourceName = "BCO/DMO";
-                                foreach (HtmlAttribute attr in link.Attributes)
+                                HtmlNodeCollection cells = row.SelectNodes("td");
+                                if (cells == null)
+                                    continue;
+                                if (cells.Count < 2)
+                                    continue;
+                                HtmlNode link = cells[0].SelectSingleNode("a");
+                                if (link != null)
                                 {
-                                    if (attr.Name == "href")
+                                    SearchResult r = new SearchResult();
+                                    r.DatasetName = link.InnerText;
+                                    r.DatasetBriefDescription = cells[1].InnerText;
+                                    r.isExternal = true;
+                                    r.SourceName = "BCO/DMO";
+                                    foreach (HtmlAttribute attr in link.Attributes)
                                     {
-                                        r.URL = attr.Value;
-                                        break;
+                                        if (attr.Name == "href")
+                                        {
+                                            r.URL = attr.Value;
+                                            break;
+                                        }
                                     }
+                                    ret.Add(r);
                                 }
-                                ret.Add(r);
                             }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
             }
             return ret;
         }
@@ -449,7 +522,7 @@ namespace ESMERALDA
 
             send = Encoding.Default.GetBytes(postData);
             req.Method = "POST";
-            req.ContentType = "application/x-www-form-urlencoded";            
+            req.ContentType = "application/x-www-form-urlencoded";
             req.ContentLength = send.Length;
 
             sout = req.GetRequestStream();
@@ -506,7 +579,7 @@ namespace ESMERALDA
             }
             return ret;
         }
-        
+
         protected List<string> GetSearchTerms(string txt)
         {
             char[] delim = new char[] { ' ' };
@@ -524,54 +597,125 @@ namespace ESMERALDA
         protected void Page_Load(object sender, EventArgs e)
         {
             // this.DoSearch();
+            Page.Title = GetAppString("appstring_shortname") + " - Search";
             this.DoSearch_Experiment();
-            base.ClientScript.RegisterStartupScript(base.GetType(), "PopulateMap", "<script language='JavaScript'>initializeMap();</script>");
+            // base.ClientScript.RegisterStartupScript(base.GetType(), "PopulateMap", "<script language='JavaScript'>initializeMap();</script>");
         }
 
         protected void PopulateMapView(List<SearchResult> results, SqlConnection conn)
         {
             string map_string = string.Empty;
             Random r = new Random();
+            List<string> ids = new List<string>();
+            StringBuilder startup = new StringBuilder();
+            StringBuilder init_map = new StringBuilder();
+            map1.resetPolygon();
+            map1.resetMarkers();
+            map1.resetListeners();
+
+            GControl control = new GControl(GControl.preBuilt.LargeMapControl);
+            map1.Add(control);
+
+            GMapUIOptions options = new GMapUIOptions();
+            options.maptypes_hybrid = true;
+            options.keyboard = true;
+            options.maptypes_physical = false;
+            options.zoom_scrollwheel = true;
+
+            map1.Add(new GMapUI(options));
+
+            init_map.Append("function initializeMap() {");
+            init_map.Append("var drawingManager = new google.maps.drawing.DrawingManager({");
+            init_map.Append("drawingControl: true,");
+            init_map.Append("drawingControlOptions: {");
+            init_map.Append("position: google.maps.ControlPosition.TOP_CENTER,");
+            init_map.Append("drawingModes: [google.maps.drawing.OverlayType.RECTANGLE]");
+            init_map.Append("},");
+            init_map.Append("circleOptions: {");
+            init_map.Append("fillColor: '#ffff00',");
+            init_map.Append("fillOpacity: 1,");
+            init_map.Append("strokeWeight: 5,");
+            init_map.Append("clickable: false,");
+            init_map.Append("zIndex: 1,");
+            init_map.Append("editable: true");
+            init_map.Append("}");
+            init_map.Append("});");
+            init_map.Append("drawingManager.setMap(" + map1.GMap_Id + ");");
+            init_map.Append("}");
+
+            startup.Append("var polys = [];");
+            startup.Append("var theMap=" + map1.GMap_Id + ";");
+            startup.Append("function toggleOverlay(incolor) {");
+            startup.Append("var i=0; for(i=0; i < polys.length; i++) {");
+            startup.Append("if(polys[i].fillColor == incolor) { polys[i].setVisible(true); } else { polys[i].setVisible(false); }");
+            startup.Append("}");
+            startup.Append("}");
+            startup.Append("function initPolys() {");
+            List<string> colors = new List<string>();
+            double min_lat = 0;
+            double min_lon = 0;
+            double max_lat = 0;
+            double max_lon = 0;            
             foreach (SearchResult gsr in results)
             {
                 if (double.IsNaN(gsr.min_lat))
                     continue;
-                List<Point> points = new List<Point>();
-                points.Add(new Point(gsr.min_lat, gsr.min_lon));
-                points.Add(new Point(gsr.max_lat, gsr.min_lon));
-                points.Add(new Point(gsr.max_lat, gsr.max_lon));
-                points.Add(new Point(gsr.min_lat, gsr.max_lon));
-
-                string curr_hull = string.Empty;
-                int i = 0;
-
-                Point[] bounding = points.ToArray<Point>();                
-                if (bounding.Length != 0)
+                string id_string = gsr.DatasetID.ToString().Replace("{", "").Replace("}", "");
+                GPolygon p = new GPolygon();
+                int seed_int = r.Next(0, 0x1000000);
+                string color = Utils.ToColor(seed_int);
+                while (colors.Contains(color))
                 {
-                    string url = "ViewDataset.aspx?DATASETID=" + gsr.DatasetID.ToString();
-                    string comment = "<strong>" + gsr.DatasetName + "</strong><br/><p>" + gsr.DatasetDescription + "</p>";
-                    int seed_int = r.Next(0, 0x1000000);
-                    System.Diagnostics.Debug.WriteLine("Seed: " + seed_int.ToString());
-                    string color = Utils.ToColor(seed_int);
-                    System.Diagnostics.Debug.WriteLine(color);
-                    curr_hull = string.Concat(new object[] { color, "~", comment, "~", url, "~", bounding[0].x, ",", bounding[0].y });
-                    for (i = 1; i < bounding.Length; i++)
-                    {
-                        curr_hull = string.Concat(new object[] { curr_hull, ";", bounding[i].x, ",", bounding[i].y });
-                    }
-                    if (string.IsNullOrEmpty(map_string))
-                    {
-                        map_string = curr_hull;
-                    }
-                    else
-                    {
-                        map_string = map_string + "|" + curr_hull;
-                    }
+                    seed_int = r.Next(0, 0x1000000);
+                    color = Utils.ToColor(seed_int);
                 }
+                colors.Add(color);
+                p.strokeColor = color;
+                p.fillColor = color;
+                p.fillOpacity = 0;
+                min_lat = Math.Min(min_lat, gsr.min_lat);
+                min_lon = Math.Min(min_lon, gsr.min_lon);
+                max_lat = Math.Max(max_lat, gsr.max_lat);
+                max_lon = Math.Max(max_lon, gsr.max_lon);
+                p.points.Add(new GLatLng(gsr.min_lat, gsr.min_lon));
+                p.points.Add(new GLatLng(gsr.max_lat, gsr.min_lon));
+                p.points.Add(new GLatLng(gsr.max_lat, gsr.max_lon));
+                p.points.Add(new GLatLng(gsr.min_lat, gsr.max_lon));
+                map1.Add(p);
+
+                p = new GPolygon();
+                p.strokeColor = color;
+                p.fillColor = color;
+                p.fillOpacity = 0.5;
+                p.points.Add(new GLatLng(gsr.min_lat, gsr.min_lon));
+                p.points.Add(new GLatLng(gsr.max_lat, gsr.min_lon));
+                p.points.Add(new GLatLng(gsr.max_lat, gsr.max_lon));
+                p.points.Add(new GLatLng(gsr.min_lat, gsr.max_lon));
+                // p.ID = "line-" + id_string;
+                // map1.Add(p);
+
+                GMarker m = new GMarker(new GLatLng(gsr.min_lat + ((gsr.max_lat - gsr.min_lat) / 2), gsr.min_lon + ((gsr.max_lon - gsr.min_lon) / 2)));
+                m.options = new GMarkerOptions();
+                string url = "ViewDataset.aspx?DATASETID=" + gsr.DatasetID.ToString();
+                m.options.title = gsr.DatasetName;
+                string markerID = p.PolygonID;
+                startup.Append(p.ToString(map1.GMap_Id));
+                string js = string.Format("{0}.setVisible(false);polys.push({0});", markerID);
+                startup.Append(js);
+                map1.Add(m);
+                string markup = "<h3>";
+                if (!string.IsNullOrEmpty(gsr.ContainerName))
+                    markup += gsr.ContainerName + ": ";
+                markup += gsr.DatasetName + "</h3><p>" + gsr.DatasetBriefDescription + "</p><p>" + gsr.DatasetDescription + "</p>";
+                js = string.Format(@"function() {{ toggleOverlay('{0}'); setDataNotes('" + markup + "');}}", color);
+                map1.Add(new GListener(m.ID, GListener.Event.mouseover, js));
             }
-            this.mapdatasets.Value = map_string;
-            conn.Close();
-            base.ClientScript.RegisterStartupScript(base.GetType(), "PopulateMap", "<script language='JavaScript'>initializeMap();</script>");
+            map1.setCenter(new GLatLng(min_lat + ((max_lat - min_lat) / 2), min_lon + ((max_lon - min_lon) / 2)), 1);
+            conn.Close();            
+            startup.Append("}");
+            map1.Add("initPolys();", true);            
+            map1.Add(startup.ToString());
+            map1.Add(init_map.ToString());
         }
     }
 }

@@ -31,6 +31,24 @@ namespace ESMERALDA {
         protected global::System.Web.UI.HtmlControls.HtmlForm form1;
         
         /// <summary>
+        /// pagestring_shortname control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl pagestring_shortname;
+        
+        /// <summary>
+        /// pagestring_fullname control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl pagestring_fullname;
+        
+        /// <summary>
         /// versionNumber control.
         /// </summary>
         /// <remarks>

@@ -11,6 +11,8 @@ namespace ESMERALDA
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            Page.Title = GetAppString("appstring_shortname") + " - Welcome";
+            pagecontent.InnerHtml = GetAppString("appstring_welcome");
             if (!base.UserIsAdministrator)
             {
                 this.adminLink.InnerHtml = string.Empty;

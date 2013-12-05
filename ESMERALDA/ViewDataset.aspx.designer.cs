@@ -31,6 +31,15 @@ namespace ESMERALDA {
         protected global::System.Web.UI.HtmlControls.HtmlForm form1;
         
         /// <summary>
+        /// breadcrumb control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl breadcrumb;
+        
+        /// <summary>
         /// metadata control.
         /// </summary>
         /// <remarks>
@@ -76,6 +85,132 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.Label lblViewSQLName;
         
         /// <summary>
+        /// chkIsPublic control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkIsPublic;
+        
+        /// <summary>
+        /// source_metadata control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl source_metadata;
+        
+        /// <summary>
+        /// txtMetadata_Name control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_Name;
+        
+        /// <summary>
+        /// txtMetadata_ShortDescription control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_ShortDescription;
+        
+        /// <summary>
+        /// txtMetadata_Description control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_Description;
+        
+        /// <summary>
+        /// txtMetadata_URL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_URL;
+        
+        /// <summary>
+        /// txtMetadata_Acquisition control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_Acquisition;
+        
+        /// <summary>
+        /// txtMetadata_Processing control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtMetadata_Processing;
+        
+        /// <summary>
+        /// txtKeywords control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlTableCell txtKeywords;
+        
+        /// <summary>
+        /// lblMetadata_DatasetID control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblMetadata_DatasetID;
+        
+        /// <summary>
+        /// lblMetadata_Project control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblMetadata_Project;
+        
+        /// <summary>
+        /// chkSourceIsPublic control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkSourceIsPublic;
+        
+        /// <summary>
+        /// chooser control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ESMERALDA.PersonChooser chooser;
+        
+        /// <summary>
+        /// additional_metadata control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl additional_metadata;
+        
+        /// <summary>
         /// filterTable control.
         /// </summary>
         /// <remarks>
@@ -94,15 +229,6 @@ namespace ESMERALDA {
         protected global::System.Web.UI.WebControls.Table controlmenu;
         
         /// <summary>
-        /// btnAddColumn control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.LinkButton btnAddColumn;
-        
-        /// <summary>
         /// btnUpdate control.
         /// </summary>
         /// <remarks>
@@ -110,6 +236,15 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.LinkButton btnUpdate;
+        
+        /// <summary>
+        /// btnAddColumn control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton btnAddColumn;
         
         /// <summary>
         /// fieldMetadata control.
@@ -229,6 +364,24 @@ namespace ESMERALDA {
         protected global::System.Web.UI.HtmlControls.HtmlGenericControl testdatapreview;
         
         /// <summary>
+        /// downloads control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl downloads;
+        
+        /// <summary>
+        /// filedownloadlink control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl filedownloadlink;
+        
+        /// <summary>
         /// errormessage control.
         /// </summary>
         /// <remarks>
@@ -236,6 +389,15 @@ namespace ESMERALDA {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.HtmlControls.HtmlGenericControl errormessage;
+        
+        /// <summary>
+        /// downloadcontrols control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl downloadcontrols;
         
         /// <summary>
         /// spanDownloadCSV control.

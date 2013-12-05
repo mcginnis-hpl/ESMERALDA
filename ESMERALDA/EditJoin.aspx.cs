@@ -13,10 +13,10 @@ namespace ESMERALDA
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            ESMERALDAClasses.Join thejoin = null;
-            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            ESMERALDAClasses.Join thejoin = null;            
             if (!base.IsPostBack)
             {
+                SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
                 base.RemoveSessionValue("WorkingJoin");
                 Guid joinid = Guid.Empty;
                 Guid projectid = Guid.Empty;
@@ -42,16 +42,161 @@ namespace ESMERALDA
                     thejoin = new ESMERALDAClasses.Join();
                     if (projectid != Guid.Empty)
                     {
-                        ESMERALDAClasses.Project proj = new ESMERALDAClasses.Project();
+                        ESMERALDAClasses.Container proj = new ESMERALDAClasses.Container();
                         proj.ID = projectid;
                         proj.Load(conn);
-                        thejoin.ParentProject = proj;
+                        thejoin.ParentEntity = proj;
                     }
                 }
                 base.SetSessionValue("WorkingJoin", thejoin);
                 this.PopulateData(conn, thejoin);
-            }             
+                conn.Close();
+            }
+            if (!string.IsNullOrEmpty(removeField.Value))
+            {
+                RemoveRow(removeField.Value);
+            }
+        }
+
+        protected void RemoveRow(string inID)
+        {
+            removeField.Value = string.Empty;
+            ESMERALDAClasses.Join working = (ESMERALDAClasses.Join)GetSessionValue("WorkingJoin");
+            if (inID == "ALL")
+            {
+                working.JoinParameter1.Clear();
+                working.JoinParameter2.Clear();
+            }
+            else
+            {
+                Guid rowid = new Guid(inID);                                
+                int i = 0;
+                while (i < working.JoinParameter1.Count)
+                {
+                    if (working.JoinParameter1[i].ID == rowid)
+                    {
+                        working.JoinParameter1.RemoveAt(i);
+                        working.JoinParameter2.RemoveAt(i);
+                        break;
+                    }
+                    i += 1;
+                }                
+            }
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            PopulateData(conn, working);
             conn.Close();
+            SetSessionValue("WorkingJoin", working);
+        }
+
+        protected void PopulateFields(SqlConnection conn, ESMERALDAClasses.Join join, Guid ds1_id, Guid ds2_id)
+        {
+            int i = 0;
+            while(i < tblJoinInfo.Rows.Count)
+            {
+                if (string.IsNullOrEmpty(tblJoinInfo.Rows[i].ID))
+                {
+                    tblJoinInfo.Rows.RemoveAt(i);
+                }
+                else
+                {
+                    i += 1;
+                }
+            }
+
+            comboSource1LinkingField.Items.Clear();
+            comboSource2LinkingField.Items.Clear();
+
+            ListItem li = new ListItem("", "");
+            comboSource1LinkingField.Items.Add(li);
+
+            li = new ListItem("", "");
+            comboSource2LinkingField.Items.Add(li);
+            SqlCommand query = null;
+            SqlDataReader reader = null;
+
+            List<ListItem> fields_1 = new List<ListItem>();
+            List<ListItem> fields_2 = new List<ListItem>();
+
+            if (ds1_id != Guid.Empty)
+            {
+                query = new SqlCommand();
+                query.CommandType = CommandType.Text;
+                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds1_id.ToString() + "' ORDER BY field_name";
+                query.CommandTimeout = 60;
+                query.Connection = conn;
+                reader = query.ExecuteReader();
+                Guid field_id = Guid.Empty;
+                string field_name = string.Empty;
+                while (reader.Read())
+                {
+                    field_id = new Guid(reader["field_id"].ToString());
+                    field_name = reader["field_name"].ToString();
+                    fields_1.Add(new ListItem(field_name, field_id.ToString()));
+                }
+                reader.Close();
+            }
+
+            if (ds2_id != null)
+            {
+                query = new SqlCommand();
+                query.CommandType = CommandType.Text;
+                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds2_id.ToString() + "' ORDER BY field_name";
+                query.CommandTimeout = 60;
+                query.Connection = conn;
+                reader = query.ExecuteReader();
+                Guid field_id = Guid.Empty;
+                string field_name = string.Empty;
+                while (reader.Read())
+                {
+                    field_id = new Guid(reader["field_id"].ToString());
+                    field_name = reader["field_name"].ToString();
+                    fields_2.Add(new ListItem(field_name, field_id.ToString()));
+                }
+                reader.Close();
+            }
+            foreach (ListItem new_li in fields_1)
+            {
+                comboSource1LinkingField.Items.Add(new ListItem(new_li.Text, new_li.Value));
+            }
+            foreach (ListItem new_li in fields_2)
+            {
+                comboSource2LinkingField.Items.Add(new ListItem(new_li.Text, new_li.Value));
+            }
+            if (join.JoinParameter1.Count > 0)
+            {
+                for (i = 0; i < join.JoinParameter1.Count; i++)
+                {
+                    TableRow tr = new TableRow();
+                    TableCell td = new TableCell();
+                    td.Text = "Source 1 Linking Field";
+                    tr.Cells.Add(td);
+
+                    td = new TableCell();
+                    td.Text = join.JoinParameter1[i].Name;
+                    tr.Cells.Add(td);
+
+                    td = new TableCell();
+                    td.Text = "Source 2 Linking Field";
+                    tr.Cells.Add(td);
+
+                    td = new TableCell();
+                    td.Text = join.JoinParameter2[i].Name;
+                    tr.Cells.Add(td);
+
+                    td = new TableCell();
+                    td.Text = "<a href='javascript.removeRow(\"" + join.JoinParameter1[i].ID.ToString() + "\")'>Remove</a>";
+                    tr.Cells.Add(td);
+
+                    for (int j = 0; j < tblJoinInfo.Rows.Count; j++)
+                    {
+                        if (tblJoinInfo.Rows[j].ID == "newJoinRow")
+                        {
+                            tblJoinInfo.Rows.AddAt(j, tr);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         protected void PopulateData(SqlConnection conn, ESMERALDAClasses.Join join)
@@ -59,6 +204,8 @@ namespace ESMERALDA
             txtBriefDescription.Text = join.GetMetadataValue("purpose");
             txtDescription.Text = join.GetMetadataValue("abstract");
             txtViewName.Text = join.GetMetadataValue("title");
+            lblViewSQLName.Text = join.SQLName;
+            chkIsPublic.Checked = join.IsPublic;
 
             SqlCommand query = new SqlCommand();
             query.CommandType = CommandType.Text;
@@ -84,7 +231,7 @@ namespace ESMERALDA
                         comboSource1Project.SelectedIndex = comboSource1Project.Items.Count - 1;
                     }
                 }
-                else if (join.ParentProject.ID == proj_guid)
+                else if (join.ParentContainer.ID == proj_guid)
                 {
                     comboSource1Project.SelectedIndex = comboSource1Project.Items.Count - 1;
                 }
@@ -96,7 +243,7 @@ namespace ESMERALDA
                         comboSource2Project.SelectedIndex = comboSource2Project.Items.Count - 1;
                     }
                 }
-                else if (join.ParentProject.ID == proj_guid)
+                else if (join.ParentContainer.ID == proj_guid)
                 {
                     comboSource2Project.SelectedIndex = comboSource2Project.Items.Count - 1;
                 }
@@ -107,22 +254,22 @@ namespace ESMERALDA
             Guid ds1_guid = Guid.Empty;
             if (join.SourceData == null || join.SourceData.ID == Guid.Empty)
             {
-                proj1_guid = join.ParentProject.ID;
+                proj1_guid = join.ParentContainer.ID;
             }
             else
             {
-                proj1_guid = join.SourceData.ParentProject.ID;
+                proj1_guid = join.SourceData.ParentContainer.ID;
                 ds1_guid = join.SourceData.ID;
             }
             Guid proj2_guid = Guid.Empty;
             Guid ds2_guid = Guid.Empty;
             if (join.SourceData == null || join.SourceData.ID == Guid.Empty)
             {
-                proj2_guid = join.ParentProject.ID;
+                proj2_guid = join.ParentContainer.ID;
             }
             else
             {
-                proj2_guid = join.JoinedSourceData.ParentProject.ID;
+                proj2_guid = join.JoinedSourceData.ParentContainer.ID;
                 ds2_guid = join.JoinedSourceData.ID;
             }
             comboSource1Dataset.Items.Clear();
@@ -185,66 +332,7 @@ namespace ESMERALDA
                 }
                 reader.Close();
             }
-            comboSource1LinkingField.Items.Clear();
-            comboSource2LinkingField.Items.Clear();
-
-            li = new ListItem("", "");
-            comboSource1LinkingField.Items.Add(li);
-
-            li = new ListItem("", "");
-            comboSource2LinkingField.Items.Add(li);
-
-            if (ds1_guid != Guid.Empty)
-            {
-                Guid field1_guid = Guid.Empty;
-                if (join.JoinParameter1 != null)
-                    field1_guid = join.JoinParameter1.ID;
-                query = new SqlCommand();
-                query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds1_guid.ToString() + "' ORDER BY field_name";
-                query.CommandTimeout = 60;
-                query.Connection = conn;
-                reader = query.ExecuteReader();
-                Guid field_id = Guid.Empty;
-                string field_name = string.Empty;
-                while (reader.Read())
-                {
-                    field_id = new Guid(reader["field_id"].ToString());
-                    field_name = reader["field_name"].ToString();
-                    comboSource1LinkingField.Items.Add(new ListItem(field_name, field_id.ToString()));
-                    if (field1_guid != Guid.Empty && field1_guid == field_id)
-                    {
-                        comboSource1LinkingField.SelectedIndex = comboSource1LinkingField.Items.Count - 1;
-                    }
-                }
-                reader.Close();
-            }
-
-            if (ds2_guid != Guid.Empty)
-            {
-                Guid field2_guid = Guid.Empty;
-                if (join.JoinParameter2 != null)
-                    field2_guid = join.JoinParameter2.ID;
-                query = new SqlCommand();
-                query.CommandType = CommandType.Text;
-                query.CommandText = "SELECT field_id, field_name FROM v_ESMERALDA_entitydata_fields WHERE query_id='" + ds2_guid.ToString() + "' ORDER BY field_name";
-                query.CommandTimeout = 60;
-                query.Connection = conn;
-                reader = query.ExecuteReader();
-                Guid field_id = Guid.Empty;
-                string field_name = string.Empty;
-                while (reader.Read())
-                {
-                    field_id = new Guid(reader["field_id"].ToString());
-                    field_name = reader["field_name"].ToString();
-                    comboSource2LinkingField.Items.Add(new ListItem(field_name, field_id.ToString()));
-                    if (field2_guid != Guid.Empty && field2_guid == field_id)
-                    {
-                        comboSource2LinkingField.SelectedIndex = comboSource2LinkingField.Items.Count - 1;
-                    }
-                }
-                reader.Close();
-            }
+            PopulateFields(conn, join, ds1_guid, ds2_guid);
             for (int i = 0; i < comboJoinType.Items.Count; i++)
             {
                 if (comboJoinType.Items[i].Value == ((int)join.ViewJoinType).ToString())
@@ -262,72 +350,152 @@ namespace ESMERALDA
                 btnSaveJoin.Visible = false;
             }
         }
+        
+        protected void btnAddLink_Click(object sender, EventArgs e)
+        {
+            ESMERALDAClasses.Join working = (ESMERALDAClasses.Join)base.GetSessionValue("WorkingJoin");
+            Guid field1_id = new Guid(selectedField1.Value);
+            Guid field2_id = new Guid(selectedField2.Value);
+            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
+            
+            Guid ds1_guid = new Guid(selectedDS1.Value);
+            if (working.SourceData == null || working.SourceData.ID != ds1_guid)
+            {
+                string source_type = ESMERALDAClasses.Utils.GetEntityType(ds1_guid, conn);
+                if (source_type == "view")
+                {
+                    working.SourceData = new ESMERALDAClasses.View();
+                    working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
+                }
+                else
+                {
+                    working.SourceData = new ESMERALDAClasses.Dataset();
+                    working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
+                }
+
+            }
+            Guid ds2_guid = new Guid(selectedDS2.Value);
+            if (working.JoinedSourceData == null || working.JoinedSourceData.ID != ds2_guid)
+            {
+                string source_type = ESMERALDAClasses.Utils.GetEntityType(ds1_guid, conn);
+                if (source_type == "view")
+                {
+                    working.JoinedSourceData = new ESMERALDAClasses.View();
+                    working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
+                }
+                else
+                {
+                    working.JoinedSourceData = new ESMERALDAClasses.Dataset();
+                    working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
+                }
+            }
+            foreach (ESMERALDAClasses.QueryField f in working.SourceData.Header)
+            {
+                if (f.ID == field1_id)
+                {
+                    working.JoinParameter1.Add(f);
+                    break;
+                }
+            }
+            foreach (ESMERALDAClasses.QueryField f in working.JoinedSourceData.Header)
+            {
+                if (f.ID == field2_id)
+                {
+                    working.JoinParameter2.Add(f);
+                    break;
+                }
+            }
+            
+            base.SetSessionValue("WorkingJoin", working);
+            this.PopulateData(conn, working);
+            conn.Close();
+            selectedField1.Value = string.Empty;
+            selectedField2.Value = string.Empty;
+        }
 
         protected void btnSubmitJoin_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(comboSource1Project.SelectedValue) || string.IsNullOrEmpty(comboSource2Project.SelectedValue) ||
-                string.IsNullOrEmpty(selectedDS1.Value) || string.IsNullOrEmpty(selectedDS2.Value) ||
-                string.IsNullOrEmpty(selectedField1.Value) || string.IsNullOrEmpty(selectedField2.Value))
+                string.IsNullOrEmpty(selectedDS1.Value) || string.IsNullOrEmpty(selectedDS2.Value))
             {
                 return;
             }
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
 
             ESMERALDAClasses.Join working = (ESMERALDAClasses.Join)base.GetSessionValue("WorkingJoin");
-            Guid ds1_guid = new Guid(selectedDS1.Value);
-            Guid field1_guid = new Guid(selectedField1.Value);
-
+            Guid ds1_guid = new Guid(selectedDS1.Value);            
             Guid ds2_guid = new Guid(selectedDS2.Value);
-            Guid field2_guid = new Guid(selectedField2.Value);
 
-            string source_type = ESMERALDAClasses.Utils.GetEntityType(ds1_guid, conn);
-            if (source_type == "VIEW")
+            if (working.SourceData == null || working.SourceData.ID != ds2_guid)
             {
-                working.SourceData = new ESMERALDAClasses.View();
-                working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
-            }
-            else
-            {
-                working.SourceData = new ESMERALDAClasses.Dataset();
-                working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
-            }
-
-            source_type = ESMERALDAClasses.Utils.GetEntityType(ds2_guid, conn);
-            if (source_type == "VIEW")
-            {
-                working.JoinedSourceData = new ESMERALDAClasses.View();
-                working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
-            }
-            else
-            {
-                working.JoinedSourceData = new ESMERALDAClasses.Dataset();
-                working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
-            }
-            working.AutopopulateConditions();
-            working.ViewJoinType = (ESMERALDAClasses.Join.JoinType)int.Parse(comboJoinType.SelectedValue);
-            foreach (ESMERALDAClasses.QueryField f in working.SourceData.Header)
-            {
-                if (f.ID == field1_guid)
+                string source_type = ESMERALDAClasses.Utils.GetEntityType(ds1_guid, conn);
+                if (source_type == "view")
                 {
-                    working.JoinParameter1 = f;
+                    working.SourceData = new ESMERALDAClasses.View();
+                    working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
+                }
+                else
+                {
+                    working.SourceData = new ESMERALDAClasses.Dataset();
+                    working.SourceData.Load(conn, ds1_guid, Conversions, Metrics);
                 }
             }
-            foreach (ESMERALDAClasses.QueryField f in working.JoinedSourceData.Header)
+            if (working.JoinedSourceData == null || working.JoinedSourceData.ID != ds2_guid)
             {
-                if (f.ID == field2_guid)
+                string source_type = ESMERALDAClasses.Utils.GetEntityType(ds2_guid, conn);
+                if (source_type == "view")
                 {
-                    working.JoinParameter2 = f;
+                    working.JoinedSourceData = new ESMERALDAClasses.View();
+                    working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
+                }
+                else
+                {
+                    working.JoinedSourceData = new ESMERALDAClasses.Dataset();
+                    working.JoinedSourceData.Load(conn, ds2_guid, Conversions, Metrics);
                 }
             }
-            string dbname = working.SourceData.ParentProject.database_name;
-            string tablename = working.SourceData.SQLName;
-            SqlConnection dataconn = base.ConnectToDatabaseReadOnly(dbname);
+            if (!string.IsNullOrEmpty(selectedField1.Value) && !string.IsNullOrEmpty(selectedField2.Value))
+            {
+                Guid field1_id = new Guid(selectedField1.Value);
+                Guid field2_id = new Guid(selectedField2.Value);
+                foreach (ESMERALDAClasses.QueryField f in working.SourceData.Header)
+                {
+                    if (f.ID == field1_id)
+                    {
+                        working.JoinParameter1.Add(f);
+                        break;
+                    }
+                }
+                foreach (ESMERALDAClasses.QueryField f in working.JoinedSourceData.Header)
+                {
+                    if (f.ID == field2_id)
+                    {
+                        working.JoinParameter2.Add(f);
+                        break;
+                    }
+                }
+            }
+            if (working.JoinParameter1.Count > 0)
+            {
+                working.AutopopulateConditions();
+                if (!string.IsNullOrEmpty(comboJoinType.SelectedValue))
+                {
+                    working.ViewJoinType = (ESMERALDAClasses.Join.JoinType)int.Parse(comboJoinType.SelectedValue);
+                }
+                else
+                {
+                    working.ViewJoinType = ESMERALDAClasses.Join.JoinType.FullOuter;
+                }
+                string dbname = working.SourceData.ParentContainer.database_name;
+                string tablename = working.SourceData.SQLName;
+                SqlConnection dataconn = base.ConnectToDatabaseReadOnly(dbname);
 
-            PopulatePreviewData(dataconn, working);
+                PopulatePreviewData(dataconn, working);                
+                dataconn.Close();
+            }
             PopulateData(conn, working);
-            SetSessionValue("WorkingJoin", working);
             conn.Close();
-            dataconn.Close();
+            SetSessionValue("WorkingJoin", working);            
         }
 
         protected void PopulatePreviewData(SqlConnection conn, ESMERALDAClasses.Join working)
@@ -388,11 +556,12 @@ namespace ESMERALDA
                 {
                     working.SetMetadataValue("title", this.txtViewName.Text);
                     working.SetMetadataValue("abstract", this.txtDescription.Text);
-                    working.SetMetadataValue("purpose", this.txtBriefDescription.Text);                    
+                    working.SetMetadataValue("purpose", this.txtBriefDescription.Text);
+                    working.IsPublic = chkIsPublic.Checked;
                     working.Save(conn);
                 }
             }
-            string dbname = working.SourceData.ParentProject.database_name;
+            string dbname = working.SourceData.ParentContainer.database_name;
             string tablename = working.SourceData.SQLName;
             SqlConnection dataconn = base.ConnectToDatabaseReadOnly(dbname);
 

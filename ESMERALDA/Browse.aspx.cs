@@ -13,27 +13,38 @@ namespace ESMERALDA
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            Page.Title = GetAppString("appstring_shortname") + " - Browse";
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            this.PopulatePrograms(conn);
+            this.PopulateContainers(conn);
             conn.Close();
         }
 
-        protected void PopulatePrograms(SqlConnection conn)
+        protected void PopulateContainers(SqlConnection conn)
         {
-            string cmd = "SELECT program_id, program_name, program_description FROM v_ESMERALDA_program_metadata ORDER BY program_name";
+            string cmd = "SELECT container_id, entity_name, entity_description FROM v_ESMERALDA_container_metadata WHERE parent_id IS NULL";
+            if (!UserIsAdministrator)
+            {
+                cmd += " AND (IsPublic=1";
+                if (IsAuthenticated && CurrentUser != null)
+                {
+                    cmd += " OR personid='" + CurrentUser.ID.ToString() + "'";
+                }
+                cmd += ")";
+            }
+            cmd += " GROUP BY container_id, entity_name, entity_description ORDER BY entity_name";
             SqlDataReader reader = new SqlCommand { Connection = conn, CommandTimeout = 60, CommandType = CommandType.Text, CommandText = cmd }.ExecuteReader();
             while (reader.Read())
             {
                 TableRow tr = new TableRow();
                 TableCell tc = new TableCell
                 {
-                    Text = "<a href='EditProgram.aspx?PROGRAMID=" + reader["program_id"].ToString() + "'>" + reader["program_name"].ToString() + "</a>",
+                    Text = "<a href='EditContainer.aspx?CONTAINERID=" + reader["container_id"].ToString() + "'>" + reader["entity_name"].ToString() + "</a>",
                     Width = Unit.Percentage(30)
                 };
                 tr.Cells.Add(tc);
                 tc = new TableCell
                 {
-                    Text = reader["program_description"].ToString()
+                    Text = reader["entity_description"].ToString()
                 };
                 tr.Cells.Add(tc);
                 this.tblPrograms.Rows.Add(tr);

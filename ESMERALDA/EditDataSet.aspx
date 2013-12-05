@@ -1,8 +1,8 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="EditDataSet.aspx.cs" Inherits="ESMERALDA.EditDataSet" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="EditDataSet.aspx.cs" Inherits="ESMERALDA.EditDataSet" EnableViewState="true" EnableViewStateMac="true" %>
 
 <%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="asp" %>
 <%@ Register TagPrefix="pc" TagName="PersonChooser" Src="~/PersonChooser.ascx" %>
-
+<%@ Register TagPrefix="md" TagName="MetadataControl" Src="~/MetadataControl.ascx" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head id="Head1" runat="server">
@@ -43,6 +43,7 @@
 
             var newMetrics = document.getElementById("newMetrics");
             var rows = newMetrics.value.split(";");
+            var populated = false;
             if (!rows)
                 return;
             for (var i = 0; i < rows.length; i++) {
@@ -61,6 +62,7 @@
                 dropdown.options.add(opt);
                 if (opt.value == selected_value) {
                     dropdown.selectedIndex = dropdown.options.length - 1;
+                    populated = true;
                 }
                 if (newMetricControlID && newValueID) {
                     if (newMetricControlID == targetControlID && opt.value == newValueID) {
@@ -246,6 +248,14 @@
                 newvalue = field.options[field.selectedIndex].value;
                 replaceValue(column, row, newvalue);
             }
+            else if (column == 6) {
+                if (field.checked) {
+                    replaceValue(column, row, "1");
+                }
+                else {
+                    replaceValue(column, row, "0");
+                }
+            }
         }
 
         function populateTimeFields() {
@@ -403,8 +413,11 @@
         }
 
         function showSheetSelector() {
+            var ap = document.getElementById("upload");
             var popup = document.getElementById('spreadsheetSheetPicker');
-            popup.style.display = '';
+            popup.style.top = (getOffset(ap).top + 20) + "px";
+            popup.style.left = (getOffset(ap).left + 20) + "px";
+            popup.style.display = 'inline';
         }
 
         function replaceMetadataValue(column, row, value) {
@@ -467,6 +480,32 @@
             var metricdiv = document.getElementById("fieldMetadataWindow");
             metricdiv.style.display = "none";
         }
+
+        function toggleAdvanced() {
+            var ap = document.getElementById("advanced");
+            if (ap) {
+                if (ap.style.display == "none") {
+                    ap.style.display = "inherit";
+                }
+                else {
+                    ap.style.display = "none";
+                }
+            }
+            /*ap = document.getElementById("attachments");
+            if (ap) {
+                if (ap.style.display == "none") {
+                    ap.style.display = "inherit";
+                }
+                else {
+                    ap.style.display = "none";
+                }
+            }*/
+        }
+
+        function showpasteDataSpecification() {
+            var el = document.getElementById("textarea_pasteDataSpecification");
+            el.style["display"] = "inherit";
+        }
     </script>
 </head>
 <body onload='initalizeParent()'>
@@ -478,15 +517,20 @@
             <div id="page_wrapper">
                 <div id="pagecontent">
                     <div id="upload" runat="server">
-                        <div id="uploadPrompt" runat="server">
-                            <h4>
-                                Upload a file:</h4>
-                            Select a file to upload data from:
-                        </div>
-                        <asp:AsyncFileUpload ID="uploadFiles2" runat="server" OnUploadedComplete="ProcessUpload"
-                            OnClientUploadComplete="reloadForm" ThrobberID="loadingGraphic" />
-                        <asp:Button ID="btnRefreshField" runat="server" Text="Button" OnClick="btnRefreshField_Click"
-                            Style="display: none" />
+                            <h4>Upload a file:</h4>      
+                            <table border="0">
+                                <tr>
+                                    <td>Header Row:</td>
+                                    <td><asp:TextBox ID="txtHeaderRow_Upload" runat="server"></asp:TextBox></td>
+                                </tr>
+                                <tr>
+                                    <td>Select a file to upload data from:</td>
+                                    <td><asp:AsyncFileUpload ID="uploadFiles2" runat="server" OnUploadedComplete="ProcessUpload"
+                            OnClientUploadComplete="reloadForm" ThrobberID="loadingGraphic" /></td>
+                                </tr>
+                                <tr id="errorrow" runat="server"><td colspan="2">
+                                    <asp:Label ID="lblError" runat="server" Text=""></asp:Label></td></tr>
+                            </table>                                                                                                
                         <div id="loadingGraphic" runat="server" style="border-style: none; display: none;">
                             <center>
                                 <h3>
@@ -496,7 +540,14 @@
                                 <img src="img/loading.gif" width="50px" alt="Loading..." /></center>
                         </div>
                         <div id="deleteDataControl" runat="server">
-                            <asp:LinkButton ID="btnDeleteExistingData" runat="server" OnClick="btnDeleteExistingData_Click" CssClass="squarebutton"><span>Delete Existing Data</span></asp:LinkButton>
+                            <table class="inlinemenu">
+                                <tr>
+                                    <td>
+                                        <asp:LinkButton ID="btnDeleteExistingData" runat="server" OnClick="btnDeleteExistingData_Click"
+                                            CssClass="squarebutton"><span>Delete Existing Data</span></asp:LinkButton>
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
                         <div id="divuploadedFiles">
                             <asp:Table ID="uploadedFiles" runat="server">
@@ -570,30 +621,58 @@
                                 <td>
                                     <asp:Label ID="lblMetadata_DatasetID" runat="server" Text=""></asp:Label>
                                 </td>
-                                <td>
-                                    Project:
-                                </td>
-                                <td>
-                                    <asp:DropDownList ID="comboProject" runat="server">
-                                    </asp:DropDownList>
+                                <td colspan="2">
                                 </td>
                             </tr>
                             <tr>
-                                <td>
-                                    Dataset is Public:
-                                </td>
-                                <td>
-                                    <asp:DropDownList ID="comboMetadata_IsPublic" runat="server">
-                                        <asp:ListItem Text="Yes" Value="true"></asp:ListItem>
-                                        <asp:ListItem Text="No" Value="false"></asp:ListItem>
-                                    </asp:DropDownList>
+                                <td colspan="2">
+                                    <asp:CheckBox ID="chkIsPublic" Text="Dataset is Public" runat="server" />
                                 </td>
                                 <td colspan="2">
                                     People:<br />
                                     <pc:PersonChooser ID="chooser" runat="server" />
                                 </td>
                             </tr>
+                            <tr>
+                                <td colspan="4">
+                                    <a href='javascript:toggleAdvanced()'>Toggle Advanced Controls</a>
+                                </td>
+                            </tr>
+                            <tr id="advanced" style="display: none">
+                                <td>
+                                    Metadata:
+                                </td>
+                                <td colspan="3">
+                                    <md:MetadataControl ID="metadata_picker" runat="server" />
+                                </td>
+                            </tr>
+                            <tr id="attachments">
+                                <td>Attachments:</td>
+                                <td colspan="3">
+                                    <table border="0px">
+                                        <tr runat="server" id="rowUpload">
+                                            <td>
+                                            <asp:AsyncFileUpload ID="uploadAttachment" runat="server" OnUploadedComplete="doUpload"
+                            OnClientUploadComplete="reloadForm" ThrobberID="loadingGraphic" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span id="filedownloadlink" runat="server"></span>
+                                            </td>
+                                        </tr>                                        
+                                    </table>
+                                </td>
+                            </tr>
                         </table>
+                    </div>
+                    <div id="pasteDataSpecification" runat="server">
+                        <div id="anchor_pasteDataSpecification"><a href="javascript:showpasteDataSpecification()">Paste a data specification</a></div>
+                        <div id="textarea_pasteDataSpecification" style="display:none">
+                            <asp:TextBox ID="txtpasteDataSpecification" runat="server" Height="100px" 
+                                ontextchanged="txtpasteDataSpecification_TextChanged" TextMode="MultiLine" 
+                                Width="600px" AutoPostBack="true"></asp:TextBox>
+                        </div>
                     </div>
                     <div id="datafields" runat="server">
                         <h4>
@@ -606,22 +685,32 @@
                                 <asp:TableHeaderCell ToolTip="The unit of measure for this value.">Units</asp:TableHeaderCell>
                                 <asp:TableHeaderCell ToolTip="Used to join Date and Time fields together.">Linked Field</asp:TableHeaderCell>
                                 <asp:TableHeaderCell ToolTip="Include this column in the saved data set.">Include</asp:TableHeaderCell>
+                                <asp:TableHeaderCell ToolTip="Blank cells should use the value from the previous row.">Tiered</asp:TableHeaderCell>
                                 <asp:TableHeaderCell></asp:TableHeaderCell>
                             </asp:TableHeaderRow>
                         </asp:Table>
-                        <asp:LinkButton ID="btnSaveTableConfig" runat="server" OnClick="btnSaveTableConfig_Click" CssClass="squarebutton"><span>Save Data Specification</span></asp:LinkButton>
+                        <table border="0" class="inlinemenu">
+                            <tr>
+                                <td>
+                                    <asp:LinkButton ID="btnSaveTableConfig" runat="server" OnClick="btnSaveTableConfig_Click"
+                                        CssClass="squarebutton"><span>Save Data Specification</span></asp:LinkButton>
+                                </td>
+                                <td id="saveControl" runat="server">
+                                    <asp:LinkButton ID="btnCreateDataset" runat="server" OnClick="btnCreateDataset_Click"
+                                        CssClass="squarebutton"><span>Create Dataset</span></asp:LinkButton>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
-                    <div id="saveControl" runat="server">
-                        <asp:LinkButton ID="btnCreateDataset" runat="server" OnClick="btnCreateDataset_Click" CssClass="squarebutton"><span>Create Dataset</span></asp:LinkButton>
+                    <div id="divCreateSpinner" class="centered" runat="server" style="border-width: 1;
+                        display: none;">
+                        <center>
+                            <h3>
+                                Creating Dataset...</h3>
+                        </center>
+                        <center>
+                            <img src="img/loading.gif" width="50px" alt="Loading..." /></center>
                     </div>
-                    <div id="divCreateSpinner" class="centered" runat="server" style="border-width: 1; display: none;">
-                            <center>
-                                <h3>
-                                    Creating Dataset...</h3>
-                            </center>
-                            <center>
-                                <img src="img/loading.gif" width="50px" alt="Loading..." /></center>
-                        </div>
                     <div id="preview" runat="server">
                         <asp:Table ID="previewTable" runat="server" CssClass="preview">
                         </asp:Table>
@@ -631,22 +720,58 @@
                     <asp:HiddenField ID="hiddenCommands" runat="server" />
                     <asp:HiddenField ID="fieldMetadata" runat="server" />
                     <asp:HiddenField ID="addMetadataTarget" runat="server" />
-                    <div id="fieldMetadataWindow" style="display: none; position: absolute; left: 0px; top: 0px;
-                        padding: 16px; background: #FFFFFF; border: 2px solid #2266AA; z-index: 100;">
+                    <div id="fieldMetadataWindow" style="display: none; position: absolute; left: 0px;
+                        top: 0px; padding: 16px; background: #FFFFFF; border: 2px solid #2266AA; z-index: 100;">
                         <table border="0">
-                            <tr><td>Instrument:</td><td>
-                                <asp:TextBox ID="txt_meta_instrument" runat="server"></asp:TextBox></td></tr>
-                            <tr><td>Observation Methodology:</td><td>
-                                <asp:TextBox ID="txt_meta_observation" runat="server"></asp:TextBox></td></tr>                            
-                            <tr><td>Analysis Methodology:</td><td>
-                                <asp:TextBox ID="txt_meta_analysis" runat="server"></asp:TextBox></td></tr>
-                            <tr><td>Processing Methodology:</td><td>
-                                <asp:TextBox ID="txt_meta_processing" runat="server"></asp:TextBox></td></tr>
-                            <tr><td>Citations:</td><td>
-                                <asp:TextBox ID="txt_meta_citations" runat="server"></asp:TextBox></td></tr>
-                                <tr><td>Description:</td><td>
-                                <asp:TextBox ID="txt_meta_description" runat="server"></asp:TextBox></td></tr>
-                                <tr>
+                            <tr>
+                                <td>
+                                    Instrument:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_instrument" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Observation Methodology:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_observation" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Analysis Methodology:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_analysis" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Processing Methodology:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_processing" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Citations:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_citations" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Description:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txt_meta_description" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td>
                                     <a class="squarebutton" href="javascript:commitMetadata()"><span>Save Metadata</span></a>
                                 </td>
@@ -656,15 +781,28 @@
                             </tr>
                         </table>
                     </div>
-                    <div id="spreadsheetSheetPicker" style="display:none; position: absolute; left: 50%; top: 50%;
-                        padding: 16px; background: #FFFFFF; border: 2px solid #2266AA; z-index: 100; width:400px; height:50px; margin-left:-200px; margin-top:-25px;">
+                    <div id="spreadsheetSheetPicker" style="display: none; position: absolute; left: 50%;
+                        top: 100px; padding: 16px; background: #FFFFFF; border: 2px solid #2266AA; z-index: 100;
+                        width: 400px; height: 50px; margin-left: -200px; margin-top: -25px;" runat="server">
                         <table border="0">
-                            <tr><td>Please select the sheet to use:</td><td>
-                                <asp:DropDownList ID="comboSpreadsheetSheets" runat="server">
-                                </asp:DropDownList>
-                                <asp:Button ID="btnSelectSheet" runat="server" Text="OK" 
-                                    onclick="btnSelectSheet_Click" />
-                               </td></tr>
+                            <tr>
+                                <td>
+                                    Please select the sheet to use:
+                                </td>
+                                <td>
+                                    <asp:DropDownList ID="comboSpreadsheetSheets" runat="server">
+                                    </asp:DropDownList>
+                                    <asp:Button ID="btnSelectSheet" runat="server" Text="OK" OnClick="btnSelectSheet_Click" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Header row:
+                                </td>
+                                <td>
+                                    <asp:TextBox ID="txtHeaderRow" runat="server"></asp:TextBox>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                     <div id="newMetricWindow" style="display: none; position: absolute; left: 0px; top: 0px;
@@ -714,23 +852,31 @@
             </div>
         </ContentTemplate>
     </asp:UpdatePanel>
-    <asp:UpdatePanelAnimationExtender ID="UpdatePanelAnimationExtender1"
-        TargetControlID="UpdatePanel1" runat="server">
+    <asp:UpdatePanelAnimationExtender ID="UpdatePanelAnimationExtender1" TargetControlID="UpdatePanel1"
+        runat="server">
         <Animations>
-            <OnUpdating>
-               <Parallel duration="0">
-                    <ScriptAction Script="onUpdating();" />
-                    <EnableAction AnimationTarget="btnCreateDataset" Enabled="false" />                   
-                </Parallel>
-            </OnUpdating>
-            <OnUpdated>
-                <Parallel duration="0">
-                    <ScriptAction Script="onUpdated();" />
-                    <EnableAction AnimationTarget="btnCreateDataset" Enabled="true" />
-                </Parallel>
-            </OnUpdated>
+ <OnUpdating>
+ <Parallel duration="0">
+        
+ <ScriptAction Script="onUpdating();" />
+        
+ <EnableAction AnimationTarget="btnCreateDataset" Enabled="false" /> 
+        
+ </Parallel>
+        
+ </OnUpdating>
+ <OnUpdated>
+ <Parallel duration="0">
+        
+ <ScriptAction Script="onUpdated();" />
+        
+ <EnableAction AnimationTarget="btnCreateDataset" Enabled="true" />
+        
+ </Parallel>
+        
+ </OnUpdated>
         </Animations>
-        </asp:UpdatePanelAnimationExtender>       
+    </asp:UpdatePanelAnimationExtender>
     </form>
 </body>
 </html>

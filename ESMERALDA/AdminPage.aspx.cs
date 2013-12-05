@@ -10,36 +10,7 @@ using System.Web.UI.WebControls;
 namespace ESMERALDA
 {
     public partial class AdminPage : ESMERALDAPage
-    {
-        protected void btn_SavProject_Click(object sender, EventArgs e)
-        {
-            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            Project theProject = (Project)base.GetSessionValue("WorkingProject");
-            if (theProject == null)
-            {
-                theProject = new Project();
-            }
-            theProject.SetMetadataValue("title", this.txtProject_Name.Text);
-            theProject.SetMetadataValue("acronym", this.txtProject_Acronym.Text);
-            theProject.SetMetadataValue("description", this.txtProject_Description.Text);
-            theProject.SetMetadataValue("logourl", this.txtProject_LogoURL.Text);
-            theProject.override_database_name = this.txtProject_DatabaseName.Text;
-            theProject.SetMetadataValue("small_logo_url", this.txtProject_SmallLogoURL.Text);
-            theProject.SetMetadataValue("url", this.txtProject_URL.Text);
-            theProject.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
-            theProject.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
-            if (theProject.Owner == null)
-            {
-                theProject.Owner = base.CurrentUser;
-            }
-            Program p = (Program)base.GetSessionValue("WorkingProgram");
-            theProject.parentProgram = p;
-            theProject.Save(conn);
-            base.SetSessionValue("WorkingProject", theProject);
-            this.PopulateFields(conn, -1);
-            conn.Close();
-        }
-
+    {        
         protected void btnAddRow_Click(object sender, EventArgs e)
         {
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
@@ -98,12 +69,13 @@ namespace ESMERALDA
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             this.PopulateFields(conn, -1);
             conn.Close();
+            fieldCommands.Value = string.Empty;
         }
 
         protected void btnSaveDataset_Click(object sender, EventArgs e)
         {
             Dataset working = (Dataset)base.GetSessionValue("WorkingDataSet");
-            Project theProject = (Project)base.GetSessionValue("WorkingProject");
+            Container theContainer = (Container)base.GetSessionValue("WorkingContainer");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             working.SetMetadataValue("acqdesc", this.txtDataset_Acquisition.Text);
             working.SetMetadataValue("abstract", this.txtDataset_Description.Text);
@@ -112,7 +84,7 @@ namespace ESMERALDA
             working.SetMetadataValue("purpose", this.txtDataset_ShortDescription.Text);
             working.SetMetadataValue("url", this.txtDataset_URL.Text);
             working.SQLName = this.txtDataset_TableName.Text;
-            working.ParentProject = theProject;
+            working.ParentEntity = theContainer;
             char[] delim = new char[] { ',' };
             working.ClearMetadataValue("keyword");
             if (!string.IsNullOrEmpty(this.txtDataset_Keywords.Text))
@@ -136,34 +108,7 @@ namespace ESMERALDA
             this.PopulateFields(conn, -1);
             conn.Close();
         }
-
-        protected void btnSaveProgram_Click(object sender, EventArgs e)
-        {
-            Program working = (Program)base.GetSessionValue("WorkingProgram");
-            if (working == null)
-            {
-                working = new Program();
-            }
-            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            working.SetMetadataValue("title", this.txtProgram_Name.Text);
-            working.SetMetadataValue("acronym", this.txtProgram_Acronym.Text);
-            working.SetMetadataValue("description", this.txtProgram_Description.Text);
-            working.SetMetadataValue("logourl", this.txtProgram_LogoURL.Text);
-            working.SetMetadataValue("small_logo_url", this.txtProgram_SmallLogoURL.Text);
-            working.SetMetadataValue("url", this.txtProgram_URL.Text);
-            working.SetMetadataValue("startdate", this.controlStartDate.SelectedDate.ToString());
-            working.SetMetadataValue("enddate", this.controlEndDate.SelectedDate.ToString());
-            working.database_name = this.txtProgram_DatabaseName.Text;
-            if (working.Owner == null)
-            {
-                working.Owner = base.CurrentUser;
-            }
-            working.Save(conn);
-            base.SetSessionValue("WorkingProgram", working);
-            this.PopulateFields(conn, -1);
-            conn.Close();
-        }
-
+        
         protected void BuildDisplayDataTable(SqlConnection conn, Dataset working, int edit_index)
         {
             int j = 0;
@@ -187,6 +132,7 @@ namespace ESMERALDA
             {
                 if (i == edit_index)
                 {
+                    fieldCommands.Value = fieldCommands.Value.Replace("EDIT", "TIDE");
                     this.txtRowName.Text = working.Header[i].Name;
                     for (int k = 0; k < this.comboRowType.Items.Count; k++)
                     {
@@ -275,14 +221,14 @@ namespace ESMERALDA
             Dataset ds = (Dataset)base.GetSessionValue("WorkingDataSet");
             ds.Header.RemoveAt(i);
             base.SetSessionValue("WorkingDataSet", ds);
+            fieldCommands.Value = string.Empty;
         }
 
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!base.IsPostBack)
             {
-                base.RemoveSessionValue("WorkingProgram");
-                base.RemoveSessionValue("WorkingProject");
+                base.RemoveSessionValue("WorkingContainer");
                 base.RemoveSessionValue("WorkingDataSet");
             }
             int edit_row = -1;
@@ -339,15 +285,15 @@ namespace ESMERALDA
 
         protected void PopulateFields(SqlConnection conn, int edit_row)
         {
-            Program p = (Program)base.GetSessionValue("WorkingProgram");
+            /*Program p = (Program)base.GetSessionValue("WorkingProgram");
             if (p != null)
             {
                 this.PopulateProgramFields(conn, p);
-            }
-            Project proj = (Project)base.GetSessionValue("WorkingProject");
+            }*/
+            Container proj = (Container)base.GetSessionValue("WorkingContainer");
             if (proj != null)
             {
-                this.PopulateProjectFields(conn, proj);
+                this.PopulateContainerFields(conn, proj);
             }
             Dataset ds = (Dataset)base.GetSessionValue("WorkingDataSet");
             if (ds != null)
@@ -384,7 +330,7 @@ namespace ESMERALDA
             }
         }
 
-        protected void PopulateProgramFields(SqlConnection conn, Program working)
+        /*protected void PopulateProgramFields(SqlConnection conn, Program working)
         {
             this.txtProgram_Name.Text = working.GetMetadataValue("title");
             this.txtProgram_Acronym.Text = working.GetMetadataValue("acronym");
@@ -402,26 +348,12 @@ namespace ESMERALDA
                 this.controlEndDate.SelectedDate = DateTime.Parse(working.GetMetadataValue("enddate"));
             }
             this.txtProgram_ID.Text = working.ID.ToString();
-        }
+        }*/
 
-        protected void PopulateProjectFields(SqlConnection conn, Project theProject)
-        {
-            this.txtProject_Name.Text = theProject.GetMetadataValue("title");
-            this.txtProject_Acronym.Text = theProject.GetMetadataValue("acronym");
-            this.txtProject_Description.Text = theProject.GetMetadataValue("description");
-            this.txtProject_LogoURL.Text = theProject.GetMetadataValue("logourl");
-            this.txtProject_DatabaseName.Text = theProject.override_database_name;
-            this.txtProject_SmallLogoURL.Text = theProject.GetMetadataValue("small_logo_url");
-            this.txtProject_URL.Text = theProject.GetMetadataValue("url");
-            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("startdate")))
-            {
-                this.projectStartDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("startdate"));
-            }
-            if (!string.IsNullOrEmpty(theProject.GetMetadataValue("enddate")))
-            {
-                this.projectEndDate.SelectedDate = DateTime.Parse(theProject.GetMetadataValue("enddate"));
-            }
-            this.txtProject_ID.Text = theProject.ID.ToString();
+        protected void PopulateContainerFields(SqlConnection conn, Container theContainer)
+        {            
+            this.txtProject_DatabaseName.Text = theContainer.override_database_name;
+            this.txtProject_ID.Text = theContainer.ID.ToString();
         }
 
         protected void txtDataset_ID_TextChanged(object sender, EventArgs e)
@@ -443,32 +375,18 @@ namespace ESMERALDA
                 }
             }
         }
-
-        protected void txtProgram_ID_TextChanged(object sender, EventArgs e)
-        {
-            Guid programid = new Guid(this.txtProgram_ID.Text);
-            Program theProgram = new Program(); ;
-            SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            if (programid != Guid.Empty)
-            {
-                theProgram.Load(conn, programid);
-            }
-            base.SetSessionValue("WorkingProgram", theProgram);
-            this.PopulateFields(conn, -1);
-            conn.Close();
-        }
-
+        
         protected void txtProject_ID_TextChanged(object sender, EventArgs e)
         {
-            Guid projectid = new Guid(this.txtProject_ID.Text);
-            Project theProject = new Project();
+            Guid containerid = new Guid(this.txtProject_ID.Text);
+            Container theContainer = new Container();
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
-            if (projectid != Guid.Empty)
+            if (containerid != Guid.Empty)
             {
-                theProject.Load(conn, projectid);
+                theContainer.Load(conn, containerid);
             }
-            this.PopulateProjectFields(conn, theProject);
-            base.SetSessionValue("WorkingProject", theProject);
+            this.PopulateContainerFields(conn, theContainer);
+            base.SetSessionValue("WorkingContainer", theContainer);
             this.PopulateFields(conn, -1);
             conn.Close();
         }
@@ -480,7 +398,7 @@ namespace ESMERALDA
             {
                 working = new Dataset();
             }
-            Project theProject = (Project)base.GetSessionValue("WorkingProject");
+            Container theContainer = (Container)base.GetSessionValue("WorkingContainer");
             SqlConnection conn = base.ConnectToConfigString("RepositoryConnection");
             working.SetMetadataValue("acqdesc", this.txtDataset_Acquisition.Text);
             working.SetMetadataValue("abstract", this.txtDataset_Description.Text);
@@ -489,7 +407,7 @@ namespace ESMERALDA
             working.SetMetadataValue("purpose", this.txtDataset_ShortDescription.Text);
             working.SetMetadataValue("url", this.txtDataset_URL.Text);
             working.SQLName = this.txtDataset_TableName.Text;
-            working.ParentProject = theProject;
+            working.ParentEntity = theContainer;
             char[] delim = new char[] { ',' };
             working.ClearMetadataValue("keyword");
             if (!string.IsNullOrEmpty(this.txtDataset_Keywords.Text))
